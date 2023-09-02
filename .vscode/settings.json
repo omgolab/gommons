@@ -1,17 +1,21 @@
 {
     "docwriter.hotkey.mac": "⌥ + .",
     "cSpell.words": [
+        "automaxprocs",
         "gccollections",
         "gccsv",
         "gccurl",
         "gcdb",
+        "gcenv",
         "gcfile",
         "gcjson",
         "gclog",
         "gclogcsv",
         "gcmath",
+        "gcruntime",
         "gcstream",
         "gcstrings",
+        "gcthreadhandler",
         "gctime",
         "strcase",
         "zerolog"

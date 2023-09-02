@@ -69,3 +69,47 @@ go-commons
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+
+configuration diagram (MERMAID):
+
+```mermaid
+graph LR
+    A[go-commons] --> B[LICENSE]
+    A --> C[README.md]
+    A --> D[go.mod]
+    A --> E[go.sum]
+    A --> F[pkg]
+    F --> G[collections]
+    G --> H[map.go]
+    F --> I[constants.go]
+    F --> J[csv]
+    J --> K[csv_logger.go]
+    F --> L[curl]
+    L --> M[curl.go]
+    F --> N[db]
+    N --> O[kv_db.go]
+    F --> P[file]
+    P --> Q[dir.go]
+    P --> R[dir_test.go]
+    P --> S[glob.go]
+    P --> T[glob_test.go]
+    P --> U[open]
+    U --> V[file_open.go]
+    P --> W[scanner.go]
+    F --> X[json]
+    X --> Y[pretty.go]
+    F --> Z[log]
+    Z --> AA[csv]
+    AA --> AB[csv_logger.go]
+    AA --> AC[csv_logger_test.go]
+    AA --> AD[options.go]
+    Z --> AE[logger.go]
+    F --> AF[math]
+    AF --> AG[rand.go]
+    F --> AH[stream]
+    AH --> AI[base.go]
+    AH --> AJ[intermediate.go]
+    AH --> AK[terminal.go]
+    F --> AL[strings]
+    AL --> AM[str_case.go]
+```
