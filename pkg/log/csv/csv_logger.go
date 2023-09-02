@@ -1,4 +1,4 @@
-package log_utils
+package gclogcsv
 
 import (
 	"bytes"
@@ -11,6 +11,7 @@ import (
 
 	csv_utils "github.com/omar391/go-commons/pkg/csv"
 	fu "github.com/omar391/go-commons/pkg/file"
+	fou "github.com/omar391/go-commons/pkg/file/open"
 	stream_utils "github.com/omar391/go-commons/pkg/stream"
 	"github.com/rs/zerolog"
 )
@@ -22,7 +23,7 @@ type CsvLogger struct {
 	logger                   zerolog.Logger
 	truncateOnHeadersMissing bool
 	disableTimestamp         bool
-	enableLevel             bool
+	enableLevel              bool
 	enableCaller             bool
 	enableError              bool
 }
@@ -238,9 +239,9 @@ func (c *CsvLogger) prepareCsvHeaderLine(headers []string) string {
 // create a csv file writer for the hook
 // remember to call: file.Close()
 func (c *CsvLogger) getCsvFile(path string, headers []string) (*os.File, error) {
-	opts := []fu.OpenOption{
+	opts := []fou.OpenOption{
 		// create a new file with incremental _number suffix
-		fu.WithIncrementalSuffixIfExists(func(path string, fi fs.FileInfo) bool {
+		fou.WithIncrementalSuffixIfExists(func(path string, fi fs.FileInfo) bool {
 			// false: don't increment the file name
 			// true: increment the file name
 
@@ -268,11 +269,11 @@ func (c *CsvLogger) getCsvFile(path string, headers []string) (*os.File, error) 
 		}),
 	}
 	if c.truncateOnHeadersMissing {
-		opts = append(opts, fu.WithTruncate())
+		opts = append(opts, fou.WithTruncate())
 	}
 
 	// open the file
-	f, err := fu.OpenFile(path, opts...)
+	f, err := fou.OpenFile(path, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -286,52 +287,4 @@ func (c *CsvLogger) getCsvFile(path string, headers []string) (*os.File, error) 
 		}
 	}
 	return f, nil
-}
-
-func WithDelimiter(delim rune) LogOption {
-	return func(h any) error {
-		ch := h.(*CsvLogger)
-		ch.cw.comma = string(delim)
-		return nil
-	}
-}
-
-func WithTruncateOnHeadersMissing() LogOption {
-	return func(h any) error {
-		ch := h.(*CsvLogger)
-		ch.truncateOnHeadersMissing = true
-		return nil
-	}
-}
-
-func WithDisableTimestamp() LogOption {
-	return func(h any) error {
-		ch := h.(*CsvLogger)
-		ch.disableTimestamp = true
-		return nil
-	}
-}
-
-func WithEnableLevel() LogOption {
-	return func(h any) error {
-		ch := h.(*CsvLogger)
-		ch.enableLevel = true
-		return nil
-	}
-}
-
-func WithEnableCaller() LogOption {
-	return func(h any) error {
-		ch := h.(*CsvLogger)
-		ch.enableCaller = true
-		return nil
-	}
-}
-
-func WithEnableError() LogOption {
-	return func(h any) error {
-		ch := h.(*CsvLogger)
-		ch.enableError = true
-		return nil
-	}
 }

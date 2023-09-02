@@ -1,4 +1,4 @@
-package strings_utils
+package gcstrings
 
 import (
 	"github.com/iancoleman/strcase"

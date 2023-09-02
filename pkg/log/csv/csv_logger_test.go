@@ -1,10 +1,10 @@
-package log_utils_test
+package gclogcsv_test
 
 import (
 	"testing"
 
 	fu "github.com/omar391/go-commons/pkg/file"
-	lu "github.com/omar391/go-commons/pkg/log"
+	lu "github.com/omar391/go-commons/pkg/log/csv"
 )
 
 func TestNewCsvLogger(t *testing.T) {

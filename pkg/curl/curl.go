@@ -1,4 +1,4 @@
-package curl_utils
+package gccurl
 
 import (
 	"net/http"

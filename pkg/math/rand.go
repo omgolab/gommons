@@ -1,4 +1,4 @@
-package math_utils
+package gcmath
 
 import (
 	"math/rand"

@@ -1,4 +1,4 @@
-package time_utils
+package gctime
 
 import (
 	"time"
