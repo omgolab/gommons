@@ -8,11 +8,11 @@ import (
 
 // The function initializes certain variables with default values and then
 // monitors and reduces idle OS threads based on certain conditions.
-func InitWith(tOut, maxLimit int) {
+func MonitorWith(intervalSec int) {
 	threadMonitorEnabled := gcenv.Env[bool]("THREAD_MONITOR_ENABLED", true)
-	timeoutSec := gcenv.Env[int]("OS_THREADS_TIMEOUT_SEC", tOut)
-	maxLimitation := gcenv.Env[int]("MAX_OS_THREADS_LIMITATION", maxLimit)
+	timeoutSec := gcenv.Env[int]("OS_THREADS_TIMEOUT_SEC", intervalSec)
+	rateLimit := gcenv.Env[int]("OS_THREADS_REDUCTION_RATE", 1)
 
 	// monitor the idle os threads and adjust reduce them accordingly
-	gcruntime.MonitorAndReduceIdleOSThreads(threadMonitorEnabled, timeoutSec, maxLimitation)
+	gcruntime.MonitorAndReduceIdleOSThreads(threadMonitorEnabled, timeoutSec, rateLimit)
 }

@@ -10,9 +10,11 @@ import (
 // idle OS threads in order to stay within a maximum limitation. This is a
 // temporary solution to reduce the number of M idle OS threads.
 // Open issue:
-// https://github.com/golang/go/issues/14592 possible pitfall:
+// https://github.com/golang/go/issues/14592
+// https://github.com/golang/go/issues/20395
+// possible pitfall:
 // https://github.com/golang/go/issues/14592#issuecomment-693186098
-func MonitorAndReduceIdleOSThreads(threadMonitorEnabled bool, timeoutSec, maxLimitation int) {
+func MonitorAndReduceIdleOSThreads(threadMonitorEnabled bool, timeoutSec, rateLimit int) {
 	if !threadMonitorEnabled {
 		return
 	}
@@ -22,29 +24,34 @@ func MonitorAndReduceIdleOSThreads(threadMonitorEnabled bool, timeoutSec, maxLim
 		timeoutSec = 5
 	}
 
-	// The default value is 1000 threads and minimum value is 1 thread
-	if maxLimitation <= 0 {
-		maxLimitation = 1
+	// The minimum rate limit is 1 thread
+	if rateLimit <= 0 {
+		rateLimit = 1
 	}
 
-	var wg sync.WaitGroup
-	ticker := time.NewTicker(time.Duration(timeoutSec) * time.Second)
-	defer ticker.Stop()
+	go func() {
+		var wg sync.WaitGroup
+		ticker := time.NewTicker(time.Duration(timeoutSec) * time.Second)
+		defer ticker.Stop()
 
-	for range ticker.C {
-		go func() {
+		for range ticker.C {
 			mThreadNum, _ := runtime.ThreadCreateProfile(nil)
-			reduce := mThreadNum - maxLimitation
-			if reduce > 0 {
-				wg.Add(reduce)
-				for i := 0; i < reduce; i++ {
+			if mThreadNum <= rateLimit {
+				return
+			}
+
+			if rateLimit > 0 {
+				wg.Add(rateLimit)
+				for i := 0; i < rateLimit; i++ {
 					go func() {
 						runtime.LockOSThread()
-						wg.Done()
+						defer wg.Done()
+						// this cause system exit rather than OS thread exit
+						// syscall.Syscall(syscall.SYS_EXIT, 0, 0, 0)
 					}()
 				}
 				wg.Wait()
 			}
-		}()
-	}
+		}
+	}()
 }
