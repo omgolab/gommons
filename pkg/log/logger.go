@@ -78,20 +78,31 @@ func NewLogger(options ...OptionSetter) (Logger, error) {
 // - we need to replace the default logger
 // - we usually don't need to update those attrs dynamically later
 
-func WithFileLogger(filename string, jsonStdOut bool) OptionSetter {
+func WithMultiLogger(filename string, jsonStdOut bool, extraWriters ...io.Writer) OptionSetter {
 	return func(l *logger) error {
-		f, err := file.OpenFile(filename)
-		if err != nil {
-			return nil
+		logList := make([]io.Writer, 0, 2)
+
+		// 1. add file logger if present
+		if filename != "" {
+			f, err := file.OpenFile(filename)
+			if err != nil {
+				return nil
+			}
+			logList = append(logList, f)
 		}
 
+		// 2. add console logger by default
 		var cl io.Writer
 		cl = zerolog.NewConsoleWriter()
 		if jsonStdOut {
 			cl = os.Stdout
 		}
+		logList = append(logList, cl)
+		
+		// 3. add extra writers
+		logList = append(logList, extraWriters...)
 
-		lg := zerolog.New(zerolog.MultiLevelWriter(cl, f))
+		lg := zerolog.New(zerolog.MultiLevelWriter(logList...))
 		if !l.timestampOff {
 			lg = lg.With().Timestamp().Logger()
 		}
