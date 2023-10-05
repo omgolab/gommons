@@ -12,12 +12,18 @@
         "gclog",
         "gclogcsv",
         "gcmath",
+        "gcprocess",
         "gcruntime",
         "gcstream",
         "gcstrings",
+        "gctest",
         "gcthreadhandler",
+        "gcthreads",
         "gctime",
+        "gomock",
+        "mockgen",
         "strcase",
+        "tasklist",
         "zerolog"
     ]
 }

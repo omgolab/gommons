@@ -1,4 +1,4 @@
-package gcruntime
+package gcthreads
 
 import (
 	"runtime"
@@ -9,23 +9,19 @@ import (
 // The function monitors and reduces the number of
 // idle OS threads in order to stay within a maximum limitation. This is a
 // temporary solution to reduce the number of M idle OS threads.
-// Open issue:
-// https://github.com/golang/go/issues/14592
-// https://github.com/golang/go/issues/20395
+// Open issues:
+// - https://github.com/golang/go/issues/14592
+// - https://github.com/golang/go/issues/20395
 // possible pitfall:
-// https://github.com/golang/go/issues/14592#issuecomment-693186098
-func MonitorAndReduceIdleOSThreads(threadMonitorEnabled bool, timeoutSec, rateLimit int) {
-	if !threadMonitorEnabled {
-		return
-	}
-
-	// The default value is 60 seconds and minimum value is 5 seconds
-	if timeoutSec <= 5 {
-		timeoutSec = 5
+// - https://github.com/golang/go/issues/14592#issuecomment-693186098
+func MonitorAndReduceIdleOSThreads(timeoutSec, rateLimit int) {
+	// The minimum value is 60 seconds
+	if timeoutSec < 60 {
+		timeoutSec = 60
 	}
 
 	// The minimum rate limit is 1 thread
-	if rateLimit <= 0 {
+	if rateLimit < 1 {
 		rateLimit = 1
 	}
 
@@ -45,9 +41,8 @@ func MonitorAndReduceIdleOSThreads(threadMonitorEnabled bool, timeoutSec, rateLi
 				for i := 0; i < rateLimit; i++ {
 					go func() {
 						runtime.LockOSThread()
-						defer wg.Done()
-						// this cause system exit rather than OS thread exit
-						// syscall.Syscall(syscall.SYS_EXIT, 0, 0, 0)
+						wg.Done()
+						defer runtime.Goexit()
 					}()
 				}
 				wg.Wait()

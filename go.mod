@@ -7,6 +7,8 @@ require (
 	github.com/rs/zerolog v1.29.1
 )
 
+require go.uber.org/mock v0.3.0
+
 require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/dgraph-io/ristretto v0.1.1 // indirect
