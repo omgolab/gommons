@@ -1,11 +1,10 @@
 package gclog
 
 import (
+	"fmt"
 	"io"
-	"os"
 
 	gccollections "github.com/omar391/go-commons/pkg/collections"
-	file "github.com/omar391/go-commons/pkg/file/open"
 	"github.com/rs/zerolog"
 )
 
@@ -35,10 +34,6 @@ var logToZerologMap = map[LogLevel]zerolog.Level{
 }
 
 type Logger interface {
-	SetMinLevel(level LogLevel) Logger
-	SetContext(keyword string) Logger
-	Disable() Logger
-	Println(msg ...any) Logger
 	Trace(msg string, fields ...LogFields) Logger
 	Debug(msg string, fields ...LogFields) Logger
 	Info(msg string, fields ...LogFields) Logger
@@ -46,22 +41,50 @@ type Logger interface {
 	Error(msg string, err error, fields ...LogFields) Logger
 	Fatal(msg string, err error, fields ...LogFields) Logger
 	Panic(msg string, err error, fields ...LogFields) Logger
+	Println(msg ...any) Logger
+	Printf(format string, v ...interface{}) Logger
+	SetMinGlobalLogLevel(minLevel LogLevel) Logger
+	SetMinCallerAttachLevel(minLevel LogLevel) Logger
+	SetContext(keyword string) Logger
+	DisableStackTraceOnError() Logger
+	DisableTimestamp() Logger
+	DisableAllLoggers() Logger
+	update(nuc uniqueCfg) Logger
 }
 
-type OptionSetter func(*logger) error
+// using sharedCfg so underlying data will be same on copy
+type sharedCfg struct {
+	minLogLevel LogLevel
+	isDisabled  bool // default ON
+	writers     []io.Writer
+	timeFormat  string
+	zlCtx       zerolog.Context
+}
+
+// uniqueCfg separate for each logger instance
+type uniqueCfg struct {
+	isTimestampOff  bool     // default ON
+	isStackTraceOff bool     // default ON
+	minCallerLevel  LogLevel // default WarnLevel
+	context         string   // default context (namespace)
+}
 
 type logger struct {
-	logger       zerolog.Logger
-	minLevel     LogLevel
-	contextAlias string
-	disabled     bool
-	timestampOff bool
+	sc *sharedCfg
+	zl zerolog.Logger
+	uc uniqueCfg
 }
 
 func NewLogger(options ...OptionSetter) (Logger, error) {
 	l := &logger{
-		logger:   zerolog.New(os.Stdout).With().Timestamp().Logger(),
-		minLevel: DebugLevel,
+		sc: &sharedCfg{
+			minLogLevel: DebugLevel,
+			writers:     []io.Writer{zerolog.NewConsoleWriter()},
+			timeFormat:  "Mon, 02 Jan 06 5:04:05PM -0700",
+		},
+		uc: uniqueCfg{
+			minCallerLevel: WarnLevel,
+		},
 	}
 
 	for _, opt := range options {
@@ -70,105 +93,101 @@ func NewLogger(options ...OptionSetter) (Logger, error) {
 		}
 	}
 
-	return l, nil
-}
+	// 1. update the writers and base logger
+	l.sc.zlCtx = zerolog.New(zerolog.MultiLevelWriter(l.sc.writers...)).With()
+	// 2. update timestamp format
+	zerolog.TimeFieldFormat = l.sc.timeFormat
 
-// Option setters:
-// Note: we use these option when
-// - we need to replace the default logger
-// - we usually don't need to update those attrs dynamically later
-
-func WithMultiLogger(filename string, jsonStdOut bool, extraWriters ...io.Writer) OptionSetter {
-	return func(l *logger) error {
-		logList := make([]io.Writer, 0, 2)
-
-		// 1. add file logger if present
-		if filename != "" {
-			f, err := file.OpenFile(filename)
-			if err != nil {
-				return nil
-			}
-			logList = append(logList, f)
-		}
-
-		// 2. add console logger by default
-		var cl io.Writer
-		cl = zerolog.NewConsoleWriter()
-		if jsonStdOut {
-			cl = os.Stdout
-		}
-		logList = append(logList, cl)
-		
-		// 3. add extra writers
-		logList = append(logList, extraWriters...)
-
-		lg := zerolog.New(zerolog.MultiLevelWriter(logList...))
-		if !l.timestampOff {
-			lg = lg.With().Timestamp().Logger()
-		}
-
-		l.logger = lg
-		return nil
-	}
-}
-
-func WithoutTimestamp() OptionSetter {
-	return func(l *logger) error {
-		l.logger = l.logger.With().Logger()
-		l.timestampOff = true
-		return nil
-	}
-}
-
-func WithDefaultLevel(level LogLevel) OptionSetter {
-	return func(l *logger) error {
-		l.minLevel = level
-		return nil
-	}
-}
-
-func WithDefaultContext(keyword string) OptionSetter {
-	return func(l *logger) error {
-		l.contextAlias = keyword
-		return nil
-	}
+	return l.update(l.uc), nil
 }
 
 // Logger methods:
 
-func (l *logger) SetMinLevel(level LogLevel) Logger {
-	l.minLevel = level
+func (l *logger) update(nuc uniqueCfg) Logger {
+	// create a copy of the logger if the same config is not provided
+	if nuc != l.uc {
+		ll := *l
+		l = &ll
+	}
+
+	ctx := l.sc.zlCtx
+
+	// 1. update timestamp
+	if !nuc.isTimestampOff {
+		ctx = ctx.Timestamp()
+	}
+
+	// 2. update stack trace on error
+	if !nuc.isStackTraceOff {
+		ctx = ctx.Stack()
+	}
+
+	// 3. update the context
+	if nuc.context != "" {
+		ctx = ctx.Str("context", nuc.context)
+	}
+
+	// update the logger
+	l.zl = ctx.Logger()
+
 	return l
 }
 
-func (l *logger) SetContext(keyword string) Logger {
-	l.contextAlias = keyword
+func (l *logger) SetMinGlobalLogLevel(minLevel LogLevel) Logger {
+	l.sc.minLogLevel = minLevel
 	return l
+}
+
+func (l *logger) DisableStackTraceOnError() Logger {
+	// copy current unique config
+	nuc := l.uc
+	nuc.isStackTraceOff = true
+	return l.update(nuc)
+}
+
+func (l *logger) DisableTimestamp() Logger {
+	// copy current unique config
+	nuc := l.uc
+	nuc.isTimestampOff = true
+	return l.update(nuc)
+}
+
+func (l *logger) SetMinCallerAttachLevel(minLevel LogLevel) Logger {
+	// copy current unique config
+	nuc := l.uc
+	nuc.minCallerLevel = minLevel
+	return l.update(nuc)
+}
+
+// SetContext returns a new child logger with the context set
+func (l *logger) SetContext(keyword string) Logger {
+	// copy current unique config
+	nuc := l.uc
+	nuc.context = keyword
+	return l.update(nuc)
 }
 
 func (l *logger) logEvent(level LogLevel, msg string, err error, fields []LogFields) Logger {
-	if l.disabled || level < l.minLevel {
+	if l.sc.isDisabled || level < l.sc.minLogLevel {
 		return l
 	}
 
-	event := l.logger.WithLevel(logToZerologMap[level])
+	event := l.zl.WithLevel(logToZerologMap[level])
 
 	if len(fields) > 0 {
 		lfs := gccollections.MergeMaps[LogFields](fields...)
-		if l.contextAlias != "" {
-			lfs["context"] = l.contextAlias
-		}
 		if lfs != nil {
 			event = event.Fields(lfs)
 		}
 	}
 
-	if level >= WarnLevel {
-		event = event.Stack()
-	}
-
 	if err != nil {
 		event = event.Err(err)
+	}
+
+	// use the caller level if enabled
+	if l.uc.minCallerLevel >= level {
+		event = event.Caller()
 	}
 
 	event.Msg(msg)
@@ -203,14 +222,21 @@ func (l *logger) Panic(msg string, err error, fields ...LogFields) Logger {
 	return l.logEvent(PanicLevel, msg, err, fields)
 }
 
-func (l *logger) Disable() Logger {
-	l.disabled = true
+func (l *logger) DisableAllLoggers() Logger {
+	l.sc.isDisabled = true
 	return l
 }
 
 func (l *logger) Println(msg ...any) Logger {
-	if !l.disabled {
-		l.logger.Print(msg...)
+	if !l.sc.isDisabled {
+		l.zl.Log().CallerSkipFrame(1).Msg(fmt.Sprint(msg...))
+	}
+	return l
+}
+
+func (l *logger) Printf(format string, v ...interface{}) Logger {
+	if !l.sc.isDisabled {
+		l.zl.Log().CallerSkipFrame(1).Msg(fmt.Sprintf(format, v...))
 	}
 	return l
 }

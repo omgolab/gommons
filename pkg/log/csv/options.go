@@ -21,7 +21,7 @@ func WithTruncateOnHeadersMissing() LogOption {
 func WithDisableTimestamp() LogOption {
 	return func(h any) error {
 		ch := h.(*CsvLogger)
-		ch.disableTimestamp = true
+		ch.disableTimestampFormatter = true
 		return nil
 	}
 }
@@ -29,7 +29,7 @@ func WithDisableTimestamp() LogOption {
 func WithEnableLevel() LogOption {
 	return func(h any) error {
 		ch := h.(*CsvLogger)
-		ch.enableLevel = true
+		ch.enableLevelFormatter = true
 		return nil
 	}
 }
@@ -37,7 +37,7 @@ func WithEnableLevel() LogOption {
 func WithEnableCaller() LogOption {
 	return func(h any) error {
 		ch := h.(*CsvLogger)
-		ch.enableCaller = true
+		ch.enableCallerFormatter = true
 		return nil
 	}
 }
@@ -45,7 +45,7 @@ func WithEnableCaller() LogOption {
 func WithEnableError() LogOption {
 	return func(h any) error {
 		ch := h.(*CsvLogger)
-		ch.enableError = true
+		ch.enableErrorFormatter = true
 		return nil
 	}
 }

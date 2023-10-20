@@ -19,13 +19,13 @@ import (
 const CsvIndicator = "~csv~"
 
 type CsvLogger struct {
-	cw                       *csvWriter
-	logger                   zerolog.Logger
-	truncateOnHeadersMissing bool
-	disableTimestamp         bool
-	enableLevel              bool
-	enableCaller             bool
-	enableError              bool
+	cw                        *csvWriter
+	logger                    zerolog.Logger
+	truncateOnHeadersMissing  bool
+	disableTimestampFormatter bool
+	enableLevelFormatter      bool
+	enableCallerFormatter     bool
+	enableErrorFormatter      bool
 }
 
 type csvWriter struct {
@@ -115,7 +115,7 @@ func NewCsvLogger(csvPath string, headers []string, opts ...LogOption) (*CsvLogg
 		Out:     c.cw,
 		NoColor: true,
 		FormatTimestamp: func(i interface{}) string {
-			if c.disableTimestamp {
+			if c.disableTimestampFormatter {
 				return ""
 			}
 			format := "2006-01-02 05:04PM"
@@ -128,7 +128,7 @@ func NewCsvLogger(csvPath string, headers []string, opts ...LogOption) (*CsvLogg
 			}
 		},
 		FormatLevel: func(i interface{}) string {
-			if !c.enableLevel {
+			if !c.enableLevelFormatter {
 				return ""
 			}
 			return strings.ToUpper(i.(string))[0:3] + c.cw.comma
@@ -158,7 +158,7 @@ func NewCsvLogger(csvPath string, headers []string, opts ...LogOption) (*CsvLogg
 			}) + CsvIndicator
 		},
 		FormatCaller: func(i interface{}) string {
-			if !c.enableCaller {
+			if !c.enableCallerFormatter {
 				return ""
 			}
 			var s string
@@ -188,7 +188,7 @@ func NewCsvLogger(csvPath string, headers []string, opts ...LogOption) (*CsvLogg
 			return ""
 		},
 		FormatErrFieldValue: func(i interface{}) string {
-			if !c.enableError {
+			if !c.enableErrorFormatter {
 				return ""
 			}
 			return fmt.Sprintf("%s%s ", i, c.cw.comma)
@@ -202,10 +202,10 @@ func NewCsvLogger(csvPath string, headers []string, opts ...LogOption) (*CsvLogg
 	}
 
 	ctx := zerolog.New(zerolog.MultiLevelWriter(cl, zerolog.NewConsoleWriter())).With()
-	if !c.disableTimestamp {
+	if !c.disableTimestampFormatter {
 		ctx = ctx.Timestamp()
 	}
-	if c.enableCaller {
+	if c.enableCallerFormatter {
 		ctx = ctx.Caller()
 	}
 	c.logger = ctx.Logger()
@@ -215,13 +215,13 @@ func NewCsvLogger(csvPath string, headers []string, opts ...LogOption) (*CsvLogg
 
 func (c *CsvLogger) prepareCsvHeaderLine(headers []string) string {
 	preHeaders := []string{}
-	if !c.disableTimestamp {
+	if !c.disableTimestampFormatter {
 		preHeaders = append(preHeaders, "Timestamp")
 	}
-	if c.enableLevel {
+	if c.enableLevelFormatter {
 		preHeaders = append(preHeaders, "Level")
 	}
-	if c.enableCaller {
+	if c.enableCallerFormatter {
 		preHeaders = append(preHeaders, "Caller")
 	}
 
@@ -230,7 +230,7 @@ func (c *CsvLogger) prepareCsvHeaderLine(headers []string) string {
 
 	// finally append error headers
 	// since error are appended at the end by console writer
-	if c.enableError {
+	if c.enableErrorFormatter {
 		preHeaders = append(preHeaders, "Error")
 	}
 	return strings.Join(preHeaders, c.cw.comma+" ") + "\n"

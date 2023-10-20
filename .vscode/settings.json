@@ -16,6 +16,7 @@
         "gcruntime",
         "gcstream",
         "gcstrings",
+        "gcstrlog",
         "gctest",
         "gcthreadhandler",
         "gcthreads",
