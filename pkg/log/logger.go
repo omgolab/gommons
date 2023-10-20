@@ -92,7 +92,8 @@ func NewLogger(options ...OptionSetter) (Logger, error) {
 		}
 	}
 
-	// update the global zerolog timestamp format
+	// update the zero logger
+	l.zl = zerolog.New(zerolog.MultiLevelWriter(l.sc.writers...))
 	zerolog.TimeFieldFormat = l.sc.timeFormat
 
 	return l.update(l.uc), nil
@@ -107,21 +108,25 @@ func (l *logger) update(nuc uniqueCfg) Logger {
 		l = &ll
 	}
 
-	ctx := zerolog.New(zerolog.MultiLevelWriter(l.sc.writers...)).With()
+	ctx := l.zl.With()
 
-	// 1. update timestamp
+	// 1. update the context
+	if nuc.context != "" {
+		if l.uc.context != "" {
+			// we need to clear the old context
+			ctx = zerolog.New(zerolog.MultiLevelWriter(l.sc.writers...)).With()
+		}
+		ctx = ctx.Str("context", nuc.context)
+	}
+
+	// 2. update timestamp
 	if !nuc.isTimestampOff {
 		ctx = ctx.Timestamp()
 	}
 
-	// 2. update stack trace on error
+	// 3. update stack trace on error
 	if !nuc.isStackTraceOff {
 		ctx = ctx.Stack()
-	}
-
-	// 3. update the context
-	if nuc.context != "" {
-		ctx = ctx.Str("context", nuc.context)
 	}
 
 	// update the logger
