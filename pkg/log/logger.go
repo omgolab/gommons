@@ -58,7 +58,6 @@ type sharedCfg struct {
 	isDisabled  bool // default ON
 	writers     []io.Writer
 	timeFormat  string
-	zlCtx       zerolog.Context
 }
 
 // uniqueCfg separate for each logger instance
@@ -93,9 +92,7 @@ func NewLogger(options ...OptionSetter) (Logger, error) {
 		}
 	}
 
-	// 1. update the writers and base logger
-	l.sc.zlCtx = zerolog.New(zerolog.MultiLevelWriter(l.sc.writers...)).With()
-	// 2. update timestamp format
+	// update the global zerolog timestamp format
 	zerolog.TimeFieldFormat = l.sc.timeFormat
 
 	return l.update(l.uc), nil
@@ -110,7 +107,7 @@ func (l *logger) update(nuc uniqueCfg) Logger {
 		l = &ll
 	}
 
-	ctx := l.sc.zlCtx
+	ctx := zerolog.New(zerolog.MultiLevelWriter(l.sc.writers...)).With()
 
 	// 1. update timestamp
 	if !nuc.isTimestampOff {
