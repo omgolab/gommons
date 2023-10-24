@@ -34,15 +34,18 @@ var logToZerologMap = map[LogLevel]zerolog.Level{
 }
 
 type Logger interface {
-	Trace(msg string, fields ...LogFields) Logger
-	Debug(msg string, fields ...LogFields) Logger
-	Info(msg string, fields ...LogFields) Logger
-	Warn(msg string, fields ...LogFields) Logger
-	Error(msg string, err error, fields ...LogFields) Logger
-	Fatal(msg string, err error, fields ...LogFields) Logger
-	Panic(msg string, err error, fields ...LogFields) Logger
-	Println(msg ...any) Logger
-	Printf(format string, v ...interface{}) Logger
+	// log methods
+	Event(msg string, level LogLevel, err error, csfCount int, fields ...LogFields)
+	Trace(msg string, fields ...LogFields)
+	Debug(msg string, fields ...LogFields)
+	Info(msg string, fields ...LogFields)
+	Warn(msg string, fields ...LogFields)
+	Error(msg string, err error, fields ...LogFields)
+	Fatal(msg string, err error, fields ...LogFields)
+	Panic(msg string, err error, fields ...LogFields)
+	Println(msg ...any)
+	Printf(format string, v ...interface{})
+	// settings methods
 	SetMinGlobalLogLevel(minLevel LogLevel) Logger
 	SetMinCallerAttachLevel(minLevel LogLevel) Logger
 	SetContext(keyword string) Logger
@@ -68,18 +71,18 @@ type uniqueCfg struct {
 	context         string   // default context (namespace)
 }
 
-type logger struct {
+type logCfg struct {
 	sc *sharedCfg
 	zl zerolog.Logger
 	uc uniqueCfg
 }
 
-func NewLogger(options ...OptionSetter) (Logger, error) {
-	l := &logger{
+func New(options ...LogOption) (Logger, error) {
+	l := &logCfg{
 		sc: &sharedCfg{
 			minLogLevel: DebugLevel,
 			writers:     []io.Writer{zerolog.NewConsoleWriter()},
-			timeFormat:  "Mon, 02 Jan 06 5:04:05PM -0700",
+			timeFormat:  "Mon 02-Jan-06 03:04:05 PM -0700",
 		},
 		uc: uniqueCfg{
 			minCallerLevel: WarnLevel,
@@ -101,7 +104,7 @@ func NewLogger(options ...OptionSetter) (Logger, error) {
 
 // Logger methods:
 
-func (l *logger) update(nuc uniqueCfg) Logger {
+func (l *logCfg) update(nuc uniqueCfg) Logger {
 	// create a copy of the logger if the same config is not provided
 	if nuc != l.uc {
 		ll := *l
@@ -131,30 +134,31 @@ func (l *logger) update(nuc uniqueCfg) Logger {
 
 	// update the logger
 	l.zl = ctx.Logger()
+	l.uc = nuc
 
 	return l
 }
 
-func (l *logger) SetMinGlobalLogLevel(minLevel LogLevel) Logger {
+func (l *logCfg) SetMinGlobalLogLevel(minLevel LogLevel) Logger {
 	l.sc.minLogLevel = minLevel
 	return l
 }
 
-func (l *logger) DisableStackTraceOnError() Logger {
+func (l *logCfg) DisableStackTraceOnError() Logger {
 	// copy current unique config
 	nuc := l.uc
 	nuc.isStackTraceOff = true
 	return l.update(nuc)
 }
 
-func (l *logger) DisableTimestamp() Logger {
+func (l *logCfg) DisableTimestamp() Logger {
 	// copy current unique config
 	nuc := l.uc
 	nuc.isTimestampOff = true
 	return l.update(nuc)
 }
 
-func (l *logger) SetMinCallerAttachLevel(minLevel LogLevel) Logger {
+func (l *logCfg) SetMinCallerAttachLevel(minLevel LogLevel) Logger {
 	// copy current unique config
 	nuc := l.uc
 	nuc.minCallerLevel = minLevel
@@ -162,16 +166,21 @@ func (l *logger) SetMinCallerAttachLevel(minLevel LogLevel) Logger {
 }
 
 // SetContext returns a new child logger with the context set
-func (l *logger) SetContext(keyword string) Logger {
+func (l *logCfg) SetContext(keyword string) Logger {
 	// copy current unique config
 	nuc := l.uc
 	nuc.context = keyword
 	return l.update(nuc)
 }
 
-func (l *logger) logEvent(level LogLevel, msg string, err error, fields []LogFields) Logger {
+func (l *logCfg) DisableAllLoggers() Logger {
+	l.sc.isDisabled = true
+	return l
+}
+
+func (l *logCfg) Event(msg string, level LogLevel, err error, csfCount int, fields ...LogFields) {
 	if l.sc.isDisabled || level < l.sc.minLogLevel {
-		return l
+		return
 	}
 
 	event := l.zl.WithLevel(logToZerologMap[level])
@@ -188,57 +197,50 @@ func (l *logger) logEvent(level LogLevel, msg string, err error, fields []LogFie
 	}
 
 	// use the caller level if enabled
-	if l.uc.minCallerLevel >= level {
-		event = event.Caller()
+	if l.uc.minCallerLevel <= level {
+		// csfCount = callerSkipFrameCount, normally to skip the caller
+		event = event.Caller(csfCount)
 	}
 
 	event.Msg(msg)
-	return l
 }
 
-func (l *logger) Trace(msg string, fields ...LogFields) Logger {
-	return l.logEvent(TraceLevel, msg, nil, fields)
+func (l *logCfg) Trace(msg string, fields ...LogFields) {
+	l.Event(msg, TraceLevel, nil, 2, fields...)
 }
 
-func (l *logger) Debug(msg string, fields ...LogFields) Logger {
-	return l.logEvent(DebugLevel, msg, nil, fields)
+func (l *logCfg) Debug(msg string, fields ...LogFields) {
+	l.Event(msg, DebugLevel, nil, 2, fields...)
 }
 
-func (l *logger) Info(msg string, fields ...LogFields) Logger {
-	return l.logEvent(InfoLevel, msg, nil, fields)
+func (l *logCfg) Info(msg string, fields ...LogFields) {
+	l.Event(msg, InfoLevel, nil, 2, fields...)
 }
 
-func (l *logger) Warn(msg string, fields ...LogFields) Logger {
-	return l.logEvent(WarnLevel, msg, nil, fields)
+func (l *logCfg) Warn(msg string, fields ...LogFields) {
+	l.Event(msg, WarnLevel, nil, 2, fields...)
 }
 
-func (l *logger) Error(msg string, err error, fields ...LogFields) Logger {
-	return l.logEvent(ErrorLevel, msg, err, fields)
+func (l *logCfg) Error(msg string, err error, fields ...LogFields) {
+	l.Event(msg, ErrorLevel, err, 2, fields...)
 }
 
-func (l *logger) Fatal(msg string, err error, fields ...LogFields) Logger {
-	return l.logEvent(FatalLevel, msg, err, fields)
+func (l *logCfg) Fatal(msg string, err error, fields ...LogFields) {
+	l.Event(msg, FatalLevel, err, 2, fields...)
 }
 
-func (l *logger) Panic(msg string, err error, fields ...LogFields) Logger {
-	return l.logEvent(PanicLevel, msg, err, fields)
+func (l *logCfg) Panic(msg string, err error, fields ...LogFields) {
+	l.Event(msg, PanicLevel, err, 2, fields...)
 }
 
-func (l *logger) DisableAllLoggers() Logger {
-	l.sc.isDisabled = true
-	return l
-}
-
-func (l *logger) Println(msg ...any) Logger {
+func (l *logCfg) Println(msg ...any) {
 	if !l.sc.isDisabled {
 		l.zl.Log().CallerSkipFrame(1).Msg(fmt.Sprint(msg...))
 	}
-	return l
 }
 
-func (l *logger) Printf(format string, v ...interface{}) Logger {
+func (l *logCfg) Printf(format string, v ...interface{}) {
 	if !l.sc.isDisabled {
 		l.zl.Log().CallerSkipFrame(1).Msg(fmt.Sprintf(format, v...))
 	}
-	return l
 }

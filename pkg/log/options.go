@@ -7,15 +7,15 @@ import (
 	gcfile "github.com/omar391/go-commons/pkg/file/open"
 )
 
-type OptionSetter func(*logger) error
+type LogOption func(*logCfg) error
 
 // Option setters:
 // Note: we use these option when
 // - we need to replace the default logger
 // - we usually don't need to update those attrs dynamically later
 
-func WithFileLogger(filename string) OptionSetter {
-	return func(l *logger) error {
+func WithFileLogger(filename string) LogOption {
+	return func(l *logCfg) error {
 		f, err := gcfile.OpenFile(filename)
 		if err != nil {
 			return nil
@@ -25,29 +25,29 @@ func WithFileLogger(filename string) OptionSetter {
 	}
 }
 
-func WitJsonStdOut() OptionSetter {
-	return func(l *logger) error {
+func WithJsonStdOut() LogOption {
+	return func(l *logCfg) error {
 		l.sc.writers[0] = os.Stdout // update zero index to stdout
 		return nil
 	}
 }
 
-func WithMultiLogger(ws ...io.Writer) OptionSetter {
-	return func(l *logger) error {
+func WithMultiLogger(ws ...io.Writer) LogOption {
+	return func(l *logCfg) error {
 		l.sc.writers = append(l.sc.writers, ws...)
 		return nil
 	}
 }
 
-func WithTimestampFormat(format string) OptionSetter {
-	return func(l *logger) error {
+func WithTimestampFormat(format string) LogOption {
+	return func(l *logCfg) error {
 		l.sc.timeFormat = format
 		return nil
 	}
 }
 
-func WithDefaultLogLevel(level LogLevel) OptionSetter {
-	return func(l *logger) error {
+func WithDefaultLogLevel(level LogLevel) LogOption {
+	return func(l *logCfg) error {
 		l.sc.minLogLevel = level
 		return nil
 	}
