@@ -24,25 +24,26 @@ var (
 type BeforeFn[A any] func(t *testing.T) (A, error)
 type ExecFn[A, B any] func(t *testing.T, arg A) (B, error)
 type AfterFn[B any] func(t *testing.T, arg B) error
+type StepFn func(t *testing.T) error
 
-type testCfg struct {
+type testCfg[A, B any] struct {
 	t                       *testing.T
-	beforeAllTestsFn        BeforeFn[any]
-	afterAllTestsFn         AfterFn[any]
-	commonBeforeEachTestsFn BeforeFn[any]
-	commonAfterEachTestsFn  AfterFn[any]
+	beforeAllTestsFn        StepFn
+	afterAllTestsFn         StepFn
+	commonBeforeEachTestsFn BeforeFn[A]
+	commonAfterEachTestsFn  AfterFn[B]
 	isParallel              bool
 	activeTestCaseID        atomic.Int64
 }
 
-type testCase struct {
+type testCase[A, B any] struct {
 	id   int64
-	cfg  *testCfg
+	cfg  *testCfg[A, B]
 	name []byte
 }
 
-func NewTest(t *testing.T, opts ...TestOption) TestCase {
-	tc := &testCfg{
+func NewTest[A, B any](t *testing.T, opts ...TestOption) TestCase {
+	tc := &testCfg[A, B]{
 		t:                t,
 		activeTestCaseID: atomic.Int64{},
 	}
@@ -59,13 +60,13 @@ func NewTest(t *testing.T, opts ...TestOption) TestCase {
 
 	// execute beforeAllTestsFn if not nil
 	if tc.beforeAllTestsFn != nil {
-		_, err := tc.beforeAllTestsFn(t)
+		err := tc.beforeAllTestsFn(t)
 		assert.NoError(t, err)
 	}
 
-	// TODO: exec afterAllTestF
+	// TODO: exec afterAllTestFn
 
-	return testCase{
+	return testCase[A, B]{
 		cfg: tc,
 	}
 }
