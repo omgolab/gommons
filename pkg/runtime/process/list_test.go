@@ -11,7 +11,7 @@ import (
 	gomock "go.uber.org/mock/gomock"
 )
 
-type testMap = map[ts.GWTSteps]func(t *testing.T, ctrl *gomock.Controller) test
+type testMap = map[ts.ToFinalStep]func(t *testing.T, ctrl *gomock.Controller) test
 
 type args struct {
 	fields gcprocess.ProcessFilter
@@ -27,7 +27,7 @@ func sut(args args) gcprocess.ProcessFilter {
 	return args.fields
 }
 
-func TestProcessFilter_ListProcesses(t *testing.T) {
+func TestProcessFilterListProcesses(t *testing.T) {
 	tests := testMap{
 		// ts.ForScenario("Mock a process execution PASS for unix").
 		// 	Given("a Unix-like system").
@@ -52,8 +52,8 @@ func TestProcessFilter_ListProcesses(t *testing.T) {
 		// 		wantErr: false,
 		// 	}
 		// },
-		ts.ForScenario("Mock a process execution PASS for windows").
-			Given("a Windows-like system").
+		ts.NewScenario("Mock a process execution PASS for windows").
+			NewTestCaseGiven("a Windows-like system").
 			When("listing processes").
 			Then("it should return expected process details").
 			AndReturnsNoError(): func(t *testing.T, ctrl *gomock.Controller) test {
@@ -143,7 +143,7 @@ func TestProcessFilter_ListProcesses(t *testing.T) {
 	}
 
 	for name, testFn := range tests {
-		t.Run(name.ToString(), func(t *testing.T) {
+		t.Run(name.Name(), func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 

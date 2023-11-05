@@ -4,8 +4,7 @@ import (
 	"testing"
 
 	fu "github.com/omar391/go-commons/pkg/file"
-	gclog "github.com/omar391/go-commons/pkg/log"
-	lu "github.com/omar391/go-commons/pkg/log/custom/csv"
+	lu "github.com/omar391/go-commons/pkg/log/gccustlog/csv"
 )
 
 func TestNewCsvLogger(t *testing.T) {
@@ -82,8 +81,7 @@ func TestNewCsvLogger(t *testing.T) {
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := lu.New(tt.args.path, tt.args.headers, nil, nil)
-			got.UpdateBaseLogger(got.SetMinCallerAttachLevel(gclog.DebugLevel))
+			got, err := lu.New(tt.args.path, lu.WithHeaders(tt.args.headers))
 			if err != nil {
 				t.Error(err)
 			}

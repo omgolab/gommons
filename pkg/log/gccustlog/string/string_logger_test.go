@@ -4,19 +4,14 @@ import (
 	"errors"
 	"testing"
 
-	log "github.com/omar391/go-commons/pkg/log"
 	"github.com/tj/assert"
 
-	filter "github.com/omar391/go-commons/pkg/log/custom"
-	gcstrlog "github.com/omar391/go-commons/pkg/log/custom/string"
+	sl "github.com/omar391/go-commons/pkg/log/gccustlog/string"
 )
 
 func TestNew(t *testing.T) {
 	t.Run("successful creation", func(t *testing.T) {
-		filterOpts := []filter.FilterOption{}
-		logOpts := []log.LogOption{}
-
-		arrayLogger, err := gcstrlog.New(filterOpts, logOpts...)
+		arrayLogger, err := sl.New()
 
 		assert.NoError(t, err)
 		assert.NotNil(t, arrayLogger)
@@ -24,11 +19,9 @@ func TestNew(t *testing.T) {
 }
 
 func TestStringLogger(t *testing.T) {
-	filterOpts := []filter.FilterOption{}
-	logOpts := []log.LogOption{}
-	strLogger, _ := gcstrlog.New(filterOpts, logOpts...)
 
 	t.Run("append and retrieve string logs", func(t *testing.T) {
+		strLogger, _ := sl.New()
 		strLogger.AppendStringErr("test message", errors.New("Test err"))
 
 		logs := strLogger.GetStringLogs()
@@ -37,12 +30,13 @@ func TestStringLogger(t *testing.T) {
 	})
 
 	t.Run("append multiple string logs", func(t *testing.T) {
+		strLogger, _ := sl.New()
 		strLogger.AppendString("first message")
 		strLogger.AppendString("second message")
 
 		logs := strLogger.GetStringLogs()
-		assert.Equal(t, 3, len(logs)) // Note that there is already 1 log from the previous sub-test
-		assert.Contains(t, logs[1], "first message")
-		assert.Contains(t, logs[2], "second message")
+		assert.Equal(t, 2, len(logs))
+		assert.Contains(t, logs[0], "first message")
+		assert.Contains(t, logs[1], "second message")
 	})
 }

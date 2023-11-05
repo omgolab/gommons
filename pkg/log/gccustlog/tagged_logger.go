@@ -1,4 +1,4 @@
-package gccustomlog
+package gccustlog
 
 import (
 	"bytes"
@@ -11,19 +11,19 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type FilterLogger interface {
+type TaggedLogger interface {
 	gclog.Logger
-	TagLog(msg string, level gclog.LogLevel, err error, csfCount int, fields ...gclog.LogFields)
+	LogTag(msg string, level gclog.LogLevel, err error, csfCount int, fields ...gclog.LogFields)
 	GetDelimiter() string
-	UpdateBaseLogger(l gclog.Logger)
 	IsTimestampFormatterEnabled() bool
 	IsLevelFormatterEnabled() bool
 	IsCallerFormatterEnabled() bool
 	IsErrorFormatterEnabled() bool
+	// UpdateBaseLogger(l gclog.Logger)
 	// add others if needed
 }
 
-type filterWriter struct {
+type tlCfg struct {
 	gclog.Logger
 	tag                    string
 	delimiter              string
@@ -37,39 +37,40 @@ type filterWriter struct {
 	fieldValueFormatter    zerolog.Formatter
 	errFieldNameFormatter  zerolog.Formatter
 	errFieldValueFormatter zerolog.Formatter
+	logOpts                []gclog.LogOption
 }
 
-func (fw *filterWriter) GetDelimiter() string {
+func (fw *tlCfg) GetDelimiter() string {
 	return fw.delimiter
 }
 
-func (fw *filterWriter) UpdateBaseLogger(l gclog.Logger) {
-	fw.Logger = l
+// func (fw *tlCfg) UpdateBaseLogger(l gclog.Logger) {
+// 	fw.Logger = l
+// }
+
+func (fw *tlCfg) IsTimestampFormatterEnabled() bool {
+	return fw.timestampFormatter("") != "-x-"
 }
 
-func (fw *filterWriter) IsTimestampFormatterEnabled() bool {
-	return fw.timestampFormatter("") != ""
+func (fw *tlCfg) IsLevelFormatterEnabled() bool {
+	return fw.levelFormatter("") != "-x-"
 }
 
-func (fw *filterWriter) IsLevelFormatterEnabled() bool {
-	return fw.levelFormatter("") != ""
+func (fw *tlCfg) IsCallerFormatterEnabled() bool {
+	return fw.callerFormatter("") != "-x-"
 }
 
-func (fw *filterWriter) IsCallerFormatterEnabled() bool {
-	return fw.callerFormatter("") != ""
+func (fw *tlCfg) IsErrorFormatterEnabled() bool {
+	return fw.errFieldNameFormatter("") != "-x-"
 }
 
-func (fw *filterWriter) IsErrorFormatterEnabled() bool {
-	return fw.errFieldNameFormatter("") != ""
-}
-
-func (fw *filterWriter) TagLog(msg string, level gclog.LogLevel, err error, csfCount int, fields ...gclog.LogFields) {
+func (fw *tlCfg) LogTag(msg string, level gclog.LogLevel, err error, csfCount int, fields ...gclog.LogFields) {
 	msg += fw.delimiter + " " + fw.tag
 	fw.Event(msg, level, err, csfCount, fields...)
 }
 
 // Write implements io.Writer and only writes to underlying writer if the tag exists
-func (fw *filterWriter) Write(b []byte) (n int, err error) {
+func (fw *tlCfg) Write(b []byte) (n int, err error) {
 	ln := len(b) // used for returning the original length
 	bi := []byte(fw.tag)
 	l := len(bi) + 1 // 1 for the delimiter or a ending newline
@@ -113,13 +114,13 @@ func (fw *filterWriter) Write(b []byte) (n int, err error) {
 	return ln, err
 }
 
-func New(tag string, w io.Writer, filterOpts []FilterOption, logOpts ...gclog.LogOption) (l FilterLogger, err error) {
+func New(tag string, w io.Writer, tlOpts ...TaggedLoggerOption) (l TaggedLogger, err error) {
 	if tag == "" || w == nil {
 		return nil, errors.New("tag or writer is invalid")
 	}
-	defaultFormatter := func(i interface{}) string { return "" }
+	defaultFormatter := func(i interface{}) string { return "-x-" }
 
-	fw := &filterWriter{
+	cfg := &tlCfg{
 		tag:       fmt.Sprintf("tag=%s-%d", tag, time.Now().UnixNano()), // make the tag unique
 		delimiter: ",",
 		writer:    w,
@@ -134,7 +135,7 @@ func New(tag string, w io.Writer, filterOpts []FilterOption, logOpts ...gclog.Lo
 	}
 
 	// enable default formatters
-	dfo := []FilterOption{
+	dfo := []TaggedLoggerOption{
 		WithTimestampFormatter(),
 		WithMessageFormatter(),
 		WithErrFieldNameFormatter(),
@@ -142,31 +143,29 @@ func New(tag string, w io.Writer, filterOpts []FilterOption, logOpts ...gclog.Lo
 		WithCallerFormatter(),
 		WithLevelFormatter(),
 	}
-	filterOpts = append(dfo, filterOpts...)
+	tlOpts = append(dfo, tlOpts...)
 
 	// apply the options
-	for _, opt := range filterOpts {
-		if err = opt(fw); err != nil {
-			return nil, err
-		}
+	for _, opt := range tlOpts {
+		opt(cfg)
 	}
 
 	// set console writer
 	cw := zerolog.ConsoleWriter{
-		Out:                 fw,
-		FormatTimestamp:     fw.timestampFormatter,
-		FormatLevel:         fw.levelFormatter,
-		FormatCaller:        fw.callerFormatter,
-		FormatMessage:       fw.messageFormatter,
-		FormatFieldName:     fw.fieldNameFormatter,
-		FormatFieldValue:    fw.fieldValueFormatter,
-		FormatErrFieldName:  fw.errFieldNameFormatter,
-		FormatErrFieldValue: fw.errFieldValueFormatter,
+		Out:                 cfg,
+		FormatTimestamp:     cfg.timestampFormatter,
+		FormatLevel:         cfg.levelFormatter,
+		FormatCaller:        cfg.callerFormatter,
+		FormatMessage:       cfg.messageFormatter,
+		FormatFieldName:     cfg.fieldNameFormatter,
+		FormatFieldValue:    cfg.fieldValueFormatter,
+		FormatErrFieldName:  cfg.errFieldNameFormatter,
+		FormatErrFieldValue: cfg.errFieldValueFormatter,
 		NoColor:             true,
-		PartsOrder:          fw.partsOrder,
+		PartsOrder:          cfg.partsOrder,
 	}
-	logOpts = append(logOpts, gclog.WithMultiLogger(cw))
+	logOpts := append(cfg.logOpts, gclog.WithPrimaryWriter(cw))
 
-	fw.Logger, err = gclog.New(logOpts...)
-	return fw, err
+	cfg.Logger, err = gclog.New(logOpts...)
+	return cfg, err
 }

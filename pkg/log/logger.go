@@ -52,6 +52,7 @@ type Logger interface {
 	DisableStackTraceOnError() Logger
 	DisableTimestamp() Logger
 	DisableAllLoggers() Logger
+	Fork(w io.Writer, fPos, lPos int) Logger
 	update(nuc uniqueCfg) Logger
 }
 
@@ -141,6 +142,32 @@ func (l *logCfg) update(nuc uniqueCfg) Logger {
 
 func (l *logCfg) SetMinGlobalLogLevel(minLevel LogLevel) Logger {
 	l.sc.minLogLevel = minLevel
+	return l
+}
+
+// Fork duplicates a new logger with the provided writer
+// fPos and lPos refers if to copy the current writers slice, i.e. l.sc.writers[fPos:lPos]
+// - unless 0 <= fPos && fPos < len(l.sc.writers), it ignores the current writers altogether
+// - if lPos < fPos || lPos > len(l.sc.writers), its ignored
+func (l *logCfg) Fork(w io.Writer, fPos, lPos int) Logger {
+	var writerOutput io.Writer
+
+	// If the position range is valid, create a slice with the exact number of writers needed.
+	if 0 <= fPos && fPos < len(l.sc.writers) {
+		if lPos < fPos || lPos > len(l.sc.writers) {
+			lPos = len(l.sc.writers)
+		}
+		writers := make([]io.Writer, lPos-fPos+1)
+		copy(writers, l.sc.writers[fPos:lPos])
+		writers[lPos-fPos] = w
+		writerOutput = zerolog.MultiLevelWriter(writers...)
+	} else {
+		// If the range is invalid, the new writer is used on its own.
+		writerOutput = w
+	}
+
+	// Set the new output for the logger, using the combined writer output or just the new writer.
+	l.zl = l.zl.Output(writerOutput)
 	return l
 }
 

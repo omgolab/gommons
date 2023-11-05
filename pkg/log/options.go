@@ -26,8 +26,12 @@ func WithFileLogger(filename string) LogOption {
 }
 
 func WithJsonStdOut() LogOption {
+	return WithPrimaryWriter(os.Stdout)
+}
+
+func WithPrimaryWriter(w io.Writer) LogOption {
 	return func(l *logCfg) error {
-		l.sc.writers[0] = os.Stdout // update zero index to stdout
+		l.sc.writers[0] = w
 		return nil
 	}
 }
