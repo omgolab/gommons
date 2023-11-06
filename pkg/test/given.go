@@ -1,24 +1,22 @@
 package gctest
 
-import (
-	"time"
-)
+import "time"
 
-type ToGivenStep interface {
-	CoreGivenStep
-	Only() CoreGivenStep
+type ToGivenStep[I, O any] interface {
+	CoreGivenStep[I, O]
+	Only() CoreGivenStep[I, O]
 }
 
-type CoreGivenStep interface {
-	Given(name string) ToWhenStep
+type CoreGivenStep[I, O any] interface {
+	Given(name string) ToWhenStep[I, O]
 }
 
-func (tc testCase) Given(name string) ToWhenStep {
+func (tc testCase[I, O]) Given(name string) ToWhenStep[I, O] {
 	tc.name = append(tc.name, append(givenPrefix, []byte(name)...)...)
 	return tc
 }
 
-func (tc testCase) Only() CoreGivenStep {
+func (tc testCase[I, O]) Only() CoreGivenStep[I, O] {
 	if tc.cfg.activeTestCaseID.Load() != 0 {
 		panic("only() can only be used once per test")
 	}

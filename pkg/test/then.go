@@ -1,10 +1,11 @@
 package gctest
 
-type ToThenStep interface {
-	Then(name string) ToErrorStep
+type ToThenStep[I, O any] interface {
+	Then(name string, want O) ToErrorStep[I, O]
 }
 
-func (tc *testCase) Then(name string) ToErrorStep {
+func (tc testCase[I, O]) Then(name string, want O) ToErrorStep[I, O] {
 	tc.name = append(tc.name, append(thenPrefix, []byte(name)...)...)
+	tc.want = want
 	return tc
 }

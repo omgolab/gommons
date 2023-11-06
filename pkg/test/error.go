@@ -1,16 +1,18 @@
 package gctest
 
-type ToErrorStep interface {
-	ReturnsError() ToFinalStep
-	ReturnsNoError() ToFinalStep
+type ToErrorStep[I, O any] interface {
+	ReturnsError(err error) ToFinalStep[I, O]
+	ReturnsNoError() ToFinalStep[I, O]
 }
 
-func (tc *testCase) ReturnsError() ToFinalStep {
+func (tc testCase[I, O]) ReturnsError(err error) ToFinalStep[I, O] {
 	tc.name = append(tc.name, returnsErrors...)
-	return tc
+	tc.err = err
+	return &tc
 }
 
-func (tc *testCase) ReturnsNoError() ToFinalStep {
+func (tc testCase[I, O]) ReturnsNoError() ToFinalStep[I, O] {
 	tc.name = append(tc.name, returnsNoErrors...)
-	return tc
+	tc.err = nil
+	return &tc
 }

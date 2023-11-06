@@ -1,6 +1,7 @@
 package gctest
 
 import (
+	"sync"
 	"sync/atomic"
 	"testing"
 
@@ -10,10 +11,9 @@ import (
 // we may create a test case like as follows:
 // NewTest ->
 //
-//	NewScenario ->
-//		NewTestCaseGiven -> When -> Then -> Error -> FinalStep
+//	Suite -> Given -> When -> Then -> Error -> FinalStep
 var (
-	scenarioPrefix  = []byte("Scenario: ")
+	scenarioPrefix  = []byte("Suite: ")
 	givenPrefix     = []byte("\tGiven: ")
 	whenPrefix      = []byte(" When: ")
 	thenPrefix      = []byte(" Then: ")
@@ -21,41 +21,41 @@ var (
 	returnsNoErrors = []byte(" And returns NO errors.")
 )
 
-type BeforeFn[A any] func(t *testing.T) (A, error)
-type ExecFn[A, B any] func(t *testing.T, arg A) (B, error)
-type AfterFn[B any] func(t *testing.T, arg B) error
+type BeforeFn[I any] func(t *testing.T) (I, error)
+type ExecFn[I, O any] func(t *testing.T, arg I) (O, error)
+type AfterFn[O any] func(t *testing.T, arg O) error
 type StepFn func(t *testing.T) error
 
-type testCfg[A, B any] struct {
+type testCfg[I, O any] struct {
 	t                       *testing.T
 	beforeAllTestsFn        StepFn
 	afterAllTestsFn         StepFn
-	commonBeforeEachTestsFn BeforeFn[A]
-	commonAfterEachTestsFn  AfterFn[B]
+	commonBeforeEachTestsFn BeforeFn[I]
+	commonAfterEachTestsFn  AfterFn[O]
 	isParallel              bool
 	activeTestCaseID        atomic.Int64
+	wg                      sync.WaitGroup
+	ch                      chan bool
 }
 
-type testCase[A, B any] struct {
+type testCase[I, O any] struct {
 	id   int64
-	cfg  *testCfg[A, B]
+	cfg  *testCfg[I, O]
 	name []byte
+	want O
+	err  error
 }
 
-func NewTest[A, B any](t *testing.T, opts ...TestOption) TestCase {
-	tc := &testCfg[A, B]{
+func NewTest[I, O any](t *testing.T, opts ...TestOption[I, O]) Test[I, O] {
+	tc := &testCfg[I, O]{
 		t:                t,
 		activeTestCaseID: atomic.Int64{},
+		ch:               make(chan bool),
 	}
 
 	// apply options
 	for _, f := range opts {
 		f(tc)
-	}
-
-	// enable parallel exec if available
-	if tc.isParallel {
-		tc.t.Parallel()
 	}
 
 	// execute beforeAllTestsFn if not nil
@@ -64,9 +64,27 @@ func NewTest[A, B any](t *testing.T, opts ...TestOption) TestCase {
 		assert.NoError(t, err)
 	}
 
-	// TODO: exec afterAllTestFn
+	// enable parallel exec if available
+	if tc.isParallel {
+		tc.t.Parallel()
+	}
 
-	return testCase[A, B]{
-		cfg: tc,
+	// exec afterAllTestsFn
+	go tc.execAfterAllTestFn()
+
+	return tc
+}
+
+func (tc *testCfg[I, O]) execAfterAllTestFn() {
+	// wait till minimum a test case's execution completes
+	<-tc.ch
+
+	// wait for the all wait group's count to be done
+	tc.wg.Wait()
+
+	// execute afterAllTestsFn if not nil
+	if tc.afterAllTestsFn != nil {
+		err := tc.afterAllTestsFn(tc.t)
+		assert.NoError(tc.t, err)
 	}
 }

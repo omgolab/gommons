@@ -1,10 +1,10 @@
 package gctest
 
-type ToWhenStep interface {
-	When(name string) ToThenStep
+type ToWhenStep[I, O any] interface {
+	When(name string) ToThenStep[I, O]
 }
 
-func (tc testCase) When(name string) ToThenStep {
+func (tc testCase[I, O]) When(name string) ToThenStep[I, O] {
 	tc.name = append(tc.name, append(whenPrefix, []byte(name)...)...)
-	return &tc
+	return tc
 }
