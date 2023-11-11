@@ -26,28 +26,35 @@ type ExecFn[I, O any] func(t *testing.T, arg I) (O, error)
 type AfterFn[O any] func(t *testing.T, arg O) error
 type StepFn func(t *testing.T) error
 
-type testCfg[I, O any] struct {
+type rootTest[I, O any] struct {
 	t                       *testing.T
 	beforeAllTestsFn        StepFn
 	afterAllTestsFn         StepFn
 	commonBeforeEachTestsFn BeforeFn[I]
 	commonAfterEachTestsFn  AfterFn[O]
-	isParallel              bool
 	activeTestCaseID        atomic.Int64
 	wg                      sync.WaitGroup
 	ch                      chan bool
+	tcs                     []testCase[I, O]
+	isParallel              bool // is root test being parallel
 }
 
 type testCase[I, O any] struct {
-	id   int64
-	cfg  *testCfg[I, O]
-	name []byte
-	want O
-	err  error
+	id         int64
+	name       []byte
+	want       O
+	err        error
+	isParallel bool // is this test case being parallel
+	execFn     ExecFn[I, O]
+}
+
+type test[I, O any] struct {
+	rt *rootTest[I, O]
+	tc testCase[I, O]
 }
 
 func NewTest[I, O any](t *testing.T, opts ...TestOption[I, O]) Test[I, O] {
-	tc := &testCfg[I, O]{
+	rt := &rootTest[I, O]{
 		t:                t,
 		activeTestCaseID: atomic.Int64{},
 		ch:               make(chan bool),
@@ -55,36 +62,24 @@ func NewTest[I, O any](t *testing.T, opts ...TestOption[I, O]) Test[I, O] {
 
 	// apply options
 	for _, f := range opts {
-		f(tc)
+		f(rt)
 	}
 
 	// execute beforeAllTestsFn if not nil
-	if tc.beforeAllTestsFn != nil {
-		err := tc.beforeAllTestsFn(t)
+	if rt.beforeAllTestsFn != nil {
+		err := rt.beforeAllTestsFn(t)
 		assert.NoError(t, err)
 	}
 
-	// enable parallel exec if available
-	if tc.isParallel {
-		tc.t.Parallel()
+	// enable root test parallel exec if available
+	if rt.isParallel {
+		rt.t.Parallel()
 	}
 
 	// exec afterAllTestsFn
-	go tc.execAfterAllTestFn()
+	// go rt.execAfterAllTestFn()
 
-	return tc
-}
-
-func (tc *testCfg[I, O]) execAfterAllTestFn() {
-	// wait till minimum a test case's execution completes
-	<-tc.ch
-
-	// wait for the all wait group's count to be done
-	tc.wg.Wait()
-
-	// execute afterAllTestsFn if not nil
-	if tc.afterAllTestsFn != nil {
-		err := tc.afterAllTestsFn(tc.t)
-		assert.NoError(tc.t, err)
+	return test[I, O]{
+		rt: rt,
 	}
 }

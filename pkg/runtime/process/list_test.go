@@ -52,7 +52,7 @@ func TestProcessFilterListProcesses(t *testing.T) {
 		// 		wantErr: false,
 		// 	}
 		// },
-		ts.NewScenario("Mock a process execution PASS for windows").
+		ts.Scenario("Mock a process execution PASS for windows").
 			NewTestCaseGiven("a Windows-like system").
 			When("listing processes").
 			Then("it should return expected process details").

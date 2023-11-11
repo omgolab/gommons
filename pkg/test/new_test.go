@@ -28,20 +28,19 @@ func TestExecutesBeforeAllTestsFnIfNotNil(t *testing.T) {
 func TestBehavioralTestPattern(t *testing.T) {
 
 	tt := gctest.NewTest[any, any](t)
+	defer tt.ExecuteAll()
 
-	tc1 := tt.Suite("Test Suite-Given-When-Then pattern without only").
-		Given("a sample given").When("a sample when").Then("a sample then", nil).ReturnsNoError()
-
-	t.Run("a", tc1.TestCaseFn(func(t *testing.T, _ any) (any, error) {
-		t.Parallel()
-		fmt.Print("hello test")
+	_, fn := tt.Suite("Test Suite-Given-When-Then pattern without only").
+		Given("a sample given").When("a sample when").Then("a sample then", nil).ReturnsNoError().Exec(func(t *testing.T, arg any) (any, error) {
+		fmt.Print("hello test 1")
 		return nil, nil
-	}))
+	})
+	t.Run("---------a", fn)
 
-	tc2 := tt.Suite("Test Suite-Given-When-Then pattern").Only().
-	Given("a sample given").When("a sample when").Then("a sample then", nil).ReturnsNoError()
-	t.Run("a", tc2.TestCaseFn(func(t *testing.T, _ any) (any, error) {
-		fmt.Print("--")
+	_, fn = tt.Suite("Test Suite-Given-When-Then pattern").
+		Given("a sample given").When("a sample when").Then("a sample then", nil).ReturnsNoError().Exec(func(t *testing.T, arg any) (any, error) {
+		fmt.Print("hello test 2")
 		return nil, nil
-	}))
+	})
+	t.Run("--------b", fn)
 }

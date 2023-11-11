@@ -5,14 +5,14 @@ type ToErrorStep[I, O any] interface {
 	ReturnsNoError() ToFinalStep[I, O]
 }
 
-func (tc testCase[I, O]) ReturnsError(err error) ToFinalStep[I, O] {
-	tc.name = append(tc.name, returnsErrors...)
-	tc.err = err
-	return &tc
+func (t test[I, O]) ReturnsError(err error) ToFinalStep[I, O] {
+	t.tc.name = append(t.tc.name, returnsErrors...)
+	t.tc.err = err
+	return &t
 }
 
-func (tc testCase[I, O]) ReturnsNoError() ToFinalStep[I, O] {
-	tc.name = append(tc.name, returnsNoErrors...)
-	tc.err = nil
-	return &tc
+func (t test[I, O]) ReturnsNoError() ToFinalStep[I, O] {
+	t.tc.name = append(t.tc.name, returnsNoErrors...)
+	t.tc.err = nil
+	return &t
 }
