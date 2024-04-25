@@ -28,19 +28,18 @@ func TestExecutesBeforeAllTestsFnIfNotNil(t *testing.T) {
 func TestBehavioralTestPattern(t *testing.T) {
 
 	tt := gctest.NewTest[any, any](t)
-	defer tt.ExecuteAll()
 
-	_, fn := tt.Suite("Test Suite-Given-When-Then pattern without only").
-		Given("a sample given").When("a sample when").Then("a sample then", nil).ReturnsNoError().Exec(func(t *testing.T, arg any) (any, error) {
+	tt.Suite("Test Suite-Given-When-Then pattern without only").Only().
+		Given("a sample given").When("a sample when").Then("a sample then").Returns(nil).Exec(func(t *testing.T, arg any) (any, error) {
 		fmt.Print("hello test 1")
 		return nil, nil
 	})
-	t.Run("---------a", fn)
+	// t.Run("---------a", fn)
 
-	_, fn = tt.Suite("Test Suite-Given-When-Then pattern").
-		Given("a sample given").When("a sample when").Then("a sample then", nil).ReturnsNoError().Exec(func(t *testing.T, arg any) (any, error) {
+	tt.Suite("Test Suite-Given-When-Then pattern").
+		Given("a sample given").When("a sample when").Then("a sample then").Returns(nil).Exec(func(t *testing.T, arg any) (any, error) {
 		fmt.Print("hello test 2")
 		return nil, nil
 	})
-	t.Run("--------b", fn)
+	// t.Run("--------b", fn)
 }

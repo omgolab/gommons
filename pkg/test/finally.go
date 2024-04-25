@@ -20,7 +20,6 @@ func (tt *test[I, O]) Exec(execFn ExecFn[I, O]) (string, func(t *testing.T)) {
 	// return id and the exec fn which will track the use of "Only" in other tests
 	return fmt.Sprint(tt.tc.id), func(t *testing.T) {
 		defer release(&tt.rt.wg, tt.rt.ch)
-		t.Helper()
 		tt.tc.execFn = execFn
 		tt.rt.tcs = append(tt.rt.tcs, tt.tc)
 	}
