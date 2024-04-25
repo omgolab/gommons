@@ -4,7 +4,7 @@ import (
 	"io"
 	"os"
 
-	gcfile "github.com/omar391/go-commons/pkg/file/open"
+	gcfile "github.com/omgolab/go-commons/pkg/file/open"
 )
 
 type LogOption func(*logCfg) error

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	fu "github.com/omar391/go-commons/pkg/file"
+	fu "github.com/omgolab/go-commons/pkg/file"
 )
 
 func TestDeleteGlobePatterns(t *testing.T) {

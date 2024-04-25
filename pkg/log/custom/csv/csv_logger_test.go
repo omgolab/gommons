@@ -3,9 +3,9 @@ package gccsvlog_test
 import (
 	"testing"
 
-	fu "github.com/omar391/go-commons/pkg/file"
-	gclog "github.com/omar391/go-commons/pkg/log"
-	lu "github.com/omar391/go-commons/pkg/log/custom/csv"
+	fu "github.com/omgolab/go-commons/pkg/file"
+	gclog "github.com/omgolab/go-commons/pkg/log"
+	lu "github.com/omgolab/go-commons/pkg/log/custom/csv"
 )
 
 func TestNewCsvLogger(t *testing.T) {

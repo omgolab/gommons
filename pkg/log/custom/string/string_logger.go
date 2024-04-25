@@ -3,8 +3,8 @@ package gcstrlog
 import (
 	"errors"
 
-	log "github.com/omar391/go-commons/pkg/log"
-	filter "github.com/omar391/go-commons/pkg/log/custom"
+	log "github.com/omgolab/go-commons/pkg/log"
+	filter "github.com/omgolab/go-commons/pkg/log/custom"
 )
 
 type StringLogger interface {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	gccollections "github.com/omar391/go-commons/pkg/collections"
+	gccollections "github.com/omgolab/go-commons/pkg/collections"
 	"github.com/rs/zerolog"
 )
 

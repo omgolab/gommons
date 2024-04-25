@@ -1,7 +1,7 @@
 package gcthreads
 
 import (
-	env "github.com/omar391/go-commons/pkg/env"
+	env "github.com/omgolab/go-commons/pkg/env"
 	_ "go.uber.org/automaxprocs"
 )
 

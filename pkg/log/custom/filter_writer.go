@@ -7,7 +7,7 @@ import (
 	"io"
 	"time"
 
-	gclog "github.com/omar391/go-commons/pkg/log"
+	gclog "github.com/omgolab/go-commons/pkg/log"
 	"github.com/rs/zerolog"
 )
 

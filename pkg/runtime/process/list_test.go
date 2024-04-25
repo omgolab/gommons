@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"testing"
 
-	gcprocess "github.com/omar391/go-commons/pkg/runtime/process"
-	ts "github.com/omar391/go-commons/pkg/test"
+	gcprocess "github.com/omgolab/go-commons/pkg/runtime/process"
+	ts "github.com/omgolab/go-commons/pkg/test"
 	gomock "go.uber.org/mock/gomock"
 )
 

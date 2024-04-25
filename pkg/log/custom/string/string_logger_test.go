@@ -4,11 +4,11 @@ import (
 	"errors"
 	"testing"
 
-	log "github.com/omar391/go-commons/pkg/log"
+	log "github.com/omgolab/go-commons/pkg/log"
 	"github.com/tj/assert"
 
-	filter "github.com/omar391/go-commons/pkg/log/custom"
-	gcstrlog "github.com/omar391/go-commons/pkg/log/custom/string"
+	filter "github.com/omgolab/go-commons/pkg/log/custom"
+	gcstrlog "github.com/omgolab/go-commons/pkg/log/custom/string"
 )
 
 func TestNew(t *testing.T) {

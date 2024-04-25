@@ -5,10 +5,10 @@ import (
 	"os"
 	"strings"
 
-	file "github.com/omar391/go-commons/pkg/file"
-	fo "github.com/omar391/go-commons/pkg/file/open"
-	log "github.com/omar391/go-commons/pkg/log"
-	filter "github.com/omar391/go-commons/pkg/log/custom"
+	file "github.com/omgolab/go-commons/pkg/file"
+	fo "github.com/omgolab/go-commons/pkg/file/open"
+	log "github.com/omgolab/go-commons/pkg/log"
+	filter "github.com/omgolab/go-commons/pkg/log/custom"
 )
 
 type CsvLogger interface {
