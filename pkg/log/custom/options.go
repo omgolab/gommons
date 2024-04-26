@@ -1,4 +1,4 @@
-package gccustomlog
+package gcustomlog
 
 import (
 	"os"

@@ -1,4 +1,4 @@
-package gccsvlog
+package gcsvlog
 
 type CsvOption func(*csvCfg) error
 

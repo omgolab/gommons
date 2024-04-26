@@ -1,4 +1,4 @@
-package gcdb
+package gdb
 
 import (
 	"context"

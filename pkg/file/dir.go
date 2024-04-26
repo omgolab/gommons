@@ -1,4 +1,4 @@
-package gcfile
+package gfile
 
 import (
 	"os"

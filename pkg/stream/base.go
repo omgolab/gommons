@@ -1,4 +1,4 @@
-package gcstream
+package gstream
 
 // This stream package is a simple implementation of a stream in Go
 // Similar Java stream: https://docs.oracle.com/en/java/javase/20/docs/api/java.base/java/util/stream/Stream.html

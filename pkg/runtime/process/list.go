@@ -1,4 +1,4 @@
-package gcprocess
+package gprocess
 
 import (
 	"bytes"

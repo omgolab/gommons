@@ -1,4 +1,4 @@
-package gcerr
+package gerr
 
 import "errors"
 

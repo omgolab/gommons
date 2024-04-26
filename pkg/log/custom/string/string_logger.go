@@ -1,4 +1,4 @@
-package gcstrlog
+package gstrlog
 
 import (
 	"errors"

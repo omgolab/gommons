@@ -1,4 +1,4 @@
-package gccurl
+package gcurl
 
 import "regexp"
 

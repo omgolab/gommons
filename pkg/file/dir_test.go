@@ -1,4 +1,4 @@
-package gcfile_test
+package gfile_test
 
 import (
 	"os"

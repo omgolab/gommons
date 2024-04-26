@@ -6,7 +6,7 @@
 //	mockgen -source=executor.go -destination=executor_mock_test.go -package=gcprocess_test
 //
 // Package gcprocess_test is a generated GoMock package.
-package gcprocess_test
+package gprocess_test
 
 import (
 	bytes "bytes"

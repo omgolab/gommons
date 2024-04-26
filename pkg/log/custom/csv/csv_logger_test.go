@@ -1,10 +1,10 @@
-package gccsvlog_test
+package gcsvlog_test
 
 import (
 	"testing"
 
 	fu "github.com/omgolab/go-commons/pkg/file"
-	gclog "github.com/omgolab/go-commons/pkg/log"
+	glog "github.com/omgolab/go-commons/pkg/log"
 	lu "github.com/omgolab/go-commons/pkg/log/custom/csv"
 )
 
@@ -83,7 +83,7 @@ func TestNewCsvLogger(t *testing.T) {
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := lu.New(tt.args.path, tt.args.headers, nil, nil)
-			got.UpdateBaseLogger(got.SetMinCallerAttachLevel(gclog.DebugLevel))
+			got.UpdateBaseLogger(got.SetMinCallerAttachLevel(glog.DebugLevel))
 			if err != nil {
 				t.Error(err)
 			}

@@ -1,4 +1,4 @@
-package gccollections
+package gcollections
 
 import (
 	"sort"

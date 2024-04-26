@@ -1,4 +1,4 @@
-package gcstream
+package gstream
 
 func (s *stream[T]) AnyMatch(predicate PredicateFunc[T]) bool {
 	for _, v := range s.data {

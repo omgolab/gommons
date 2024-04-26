@@ -1,4 +1,4 @@
-package gcjson
+package gjson
 
 import "encoding/json"
 

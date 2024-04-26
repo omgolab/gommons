@@ -1,4 +1,4 @@
-package gctime
+package gtime
 
 import (
 	"time"

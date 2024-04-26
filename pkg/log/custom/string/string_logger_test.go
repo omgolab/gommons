@@ -1,4 +1,4 @@
-package gcstrlog_test
+package gstrlog_test
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 	"github.com/tj/assert"
 
 	filter "github.com/omgolab/go-commons/pkg/log/custom"
-	gcstrlog "github.com/omgolab/go-commons/pkg/log/custom/string"
+	gstrlog "github.com/omgolab/go-commons/pkg/log/custom/string"
 )
 
 func TestNew(t *testing.T) {
@@ -16,7 +16,7 @@ func TestNew(t *testing.T) {
 		filterOpts := []filter.FilterOption{}
 		logOpts := []log.LogOption{}
 
-		arrayLogger, err := gcstrlog.New(filterOpts, logOpts...)
+		arrayLogger, err := gstrlog.New(filterOpts, logOpts...)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, arrayLogger)
@@ -26,7 +26,7 @@ func TestNew(t *testing.T) {
 func TestStringLogger(t *testing.T) {
 	filterOpts := []filter.FilterOption{}
 	logOpts := []log.LogOption{}
-	strLogger, _ := gcstrlog.New(filterOpts, logOpts...)
+	strLogger, _ := gstrlog.New(filterOpts, logOpts...)
 
 	t.Run("append and retrieve string logs", func(t *testing.T) {
 		strLogger.AppendStringErr("test message", errors.New("Test err"))

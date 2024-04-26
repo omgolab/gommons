@@ -1,4 +1,4 @@
-package gcstream
+package gstream
 
 func (s *stream[T]) Filter(predicate PredicateFunc[T]) *stream[T] {
 	newData := []T{}

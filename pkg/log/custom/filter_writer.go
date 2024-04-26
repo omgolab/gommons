@@ -1,4 +1,4 @@
-package gccustomlog
+package gcustomlog
 
 import (
 	"bytes"
@@ -7,15 +7,15 @@ import (
 	"io"
 	"time"
 
-	gclog "github.com/omgolab/go-commons/pkg/log"
+	glog "github.com/omgolab/go-commons/pkg/log"
 	"github.com/rs/zerolog"
 )
 
 type FilterLogger interface {
-	gclog.Logger
-	TagLog(msg string, level gclog.LogLevel, err error, csfCount int, fields ...gclog.LogFields)
+	glog.Logger
+	TagLog(msg string, level glog.LogLevel, err error, csfCount int, fields ...glog.LogFields)
 	GetDelimiter() string
-	UpdateBaseLogger(l gclog.Logger)
+	UpdateBaseLogger(l glog.Logger)
 	IsTimestampFormatterEnabled() bool
 	IsLevelFormatterEnabled() bool
 	IsCallerFormatterEnabled() bool
@@ -24,7 +24,7 @@ type FilterLogger interface {
 }
 
 type filterWriter struct {
-	gclog.Logger
+	glog.Logger
 	tag                    string
 	delimiter              string
 	writer                 io.Writer
@@ -43,7 +43,7 @@ func (fw *filterWriter) GetDelimiter() string {
 	return fw.delimiter
 }
 
-func (fw *filterWriter) UpdateBaseLogger(l gclog.Logger) {
+func (fw *filterWriter) UpdateBaseLogger(l glog.Logger) {
 	fw.Logger = l
 }
 
@@ -63,7 +63,7 @@ func (fw *filterWriter) IsErrorFormatterEnabled() bool {
 	return fw.errFieldNameFormatter("") != ""
 }
 
-func (fw *filterWriter) TagLog(msg string, level gclog.LogLevel, err error, csfCount int, fields ...gclog.LogFields) {
+func (fw *filterWriter) TagLog(msg string, level glog.LogLevel, err error, csfCount int, fields ...glog.LogFields) {
 	msg += fw.delimiter + " " + fw.tag
 	fw.Event(msg, level, err, csfCount, fields...)
 }
@@ -113,7 +113,7 @@ func (fw *filterWriter) Write(b []byte) (n int, err error) {
 	return ln, err
 }
 
-func New(tag string, w io.Writer, filterOpts []FilterOption, logOpts ...gclog.LogOption) (l FilterLogger, err error) {
+func New(tag string, w io.Writer, filterOpts []FilterOption, logOpts ...glog.LogOption) (l FilterLogger, err error) {
 	if tag == "" || w == nil {
 		return nil, errors.New("tag or writer is invalid")
 	}
@@ -165,8 +165,8 @@ func New(tag string, w io.Writer, filterOpts []FilterOption, logOpts ...gclog.Lo
 		NoColor:             true,
 		PartsOrder:          fw.partsOrder,
 	}
-	logOpts = append(logOpts, gclog.WithMultiLogger(cw))
+	logOpts = append(logOpts, glog.WithMultiLogger(cw))
 
-	fw.Logger, err = gclog.New(logOpts...)
+	fw.Logger, err = glog.New(logOpts...)
 	return fw, err
 }

@@ -1,4 +1,4 @@
-package gctest
+package gtest
 
 var (
 	scenarioPrefix  = []byte("Scenario ")

@@ -1,10 +1,10 @@
-package gclog
+package glog
 
 import (
 	"fmt"
 	"io"
 
-	gccollections "github.com/omgolab/go-commons/pkg/collections"
+	gcollections "github.com/omgolab/go-commons/pkg/collections"
 	"github.com/rs/zerolog"
 )
 
@@ -186,7 +186,7 @@ func (l *logCfg) Event(msg string, level LogLevel, err error, csfCount int, fiel
 	event := l.zl.WithLevel(logToZerologMap[level])
 
 	if len(fields) > 0 {
-		lfs := gccollections.MergeMaps[LogFields](fields...)
+		lfs := gcollections.MergeMaps[LogFields](fields...)
 		if lfs != nil {
 			event = event.Fields(lfs)
 		}

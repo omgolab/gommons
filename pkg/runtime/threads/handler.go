@@ -1,4 +1,4 @@
-package gcthreads
+package gthreads
 
 import (
 	env "github.com/omgolab/go-commons/pkg/env"

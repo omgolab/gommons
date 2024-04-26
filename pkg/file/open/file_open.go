@@ -1,4 +1,4 @@
-package gcfopen
+package gfopen
 
 import (
 	"fmt"

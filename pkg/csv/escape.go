@@ -1,4 +1,4 @@
-package gccsv
+package gcsv
 
 // Escape escapes the , and " char from a byte slice
 // If the byte slice contains a comma, it will be surrounded by double quotes

@@ -1,6 +1,6 @@
 // The above code is a Go package that provides functions for retrieving environment variables with
 // type conversion and fallback values.
-package gcenv
+package genv
 
 import (
 	"os"

@@ -1,4 +1,4 @@
-package gcthreads
+package gthreads
 
 import (
 	"runtime"

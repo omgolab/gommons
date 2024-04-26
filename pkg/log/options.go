@@ -1,10 +1,10 @@
-package gclog
+package glog
 
 import (
 	"io"
 	"os"
 
-	gcfile "github.com/omgolab/go-commons/pkg/file/open"
+	gfile "github.com/omgolab/go-commons/pkg/file/open"
 )
 
 type LogOption func(*logCfg) error
@@ -16,7 +16,7 @@ type LogOption func(*logCfg) error
 
 func WithFileLogger(filename string) LogOption {
 	return func(l *logCfg) error {
-		f, err := gcfile.OpenFile(filename)
+		f, err := gfile.OpenFile(filename)
 		if err != nil {
 			return nil
 		}

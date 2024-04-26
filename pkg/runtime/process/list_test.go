@@ -1,4 +1,4 @@
-package gcprocess_test
+package gprocess_test
 
 import (
 	"bytes"
@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"testing"
 
-	gcprocess "github.com/omgolab/go-commons/pkg/runtime/process"
+	gprocess "github.com/omgolab/go-commons/pkg/runtime/process"
 	ts "github.com/omgolab/go-commons/pkg/test"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -14,7 +14,7 @@ import (
 type testMap = map[ts.GWTSteps]func(t *testing.T, ctrl *gomock.Controller) test
 
 type args struct {
-	fields gcprocess.ProcessFilter
+	fields gprocess.ProcessFilter
 }
 
 type test struct {
@@ -23,7 +23,7 @@ type test struct {
 	wantErr bool
 }
 
-func sut(args args) gcprocess.ProcessFilter {
+func sut(args args) gprocess.ProcessFilter {
 	return args.fields
 }
 
@@ -43,7 +43,7 @@ func TestProcessFilter_ListProcesses(t *testing.T) {
 
 		// 	return test{
 		// 		args: args{
-		// 			fields: gcprocess.ProcessFilter{
+		// 			fields: gprocess.ProcessFilter{
 		// 				Attrs:           map[string]string{},
 		// 				CommandExecutor: mockExecutor,
 		// 			},
@@ -68,7 +68,7 @@ func TestProcessFilter_ListProcesses(t *testing.T) {
 
 			return test{
 				args: args{
-					fields: gcprocess.ProcessFilter{
+					fields: gprocess.ProcessFilter{
 						Attrs:           map[string]string{},
 						CommandExecutor: mockExecutor,
 					},
@@ -88,7 +88,7 @@ func TestProcessFilter_ListProcesses(t *testing.T) {
 
 		// 	return test{
 		// 		args: args{
-		// 			fields: gcprocess.ProcessFilter{
+		// 			fields: gprocess.ProcessFilter{
 		// 				Attrs:           map[string]string{},
 		// 				CommandExecutor: mockExecutor,
 		// 			},
@@ -107,7 +107,7 @@ func TestProcessFilter_ListProcesses(t *testing.T) {
 
 		// 	return test{
 		// 		args: args{
-		// 			fields: gcprocess.ProcessFilter{
+		// 			fields: gprocess.ProcessFilter{
 		// 				Attrs:           map[string]string{},
 		// 				CommandExecutor: mockExecutor,
 		// 			},
@@ -119,9 +119,9 @@ func TestProcessFilter_ListProcesses(t *testing.T) {
 		// "Given a real system with no filter, When listing processes, Then it should return at least one process": func(t *testing.T, ctrl *gomock.Controller) test {
 		// 	return test{
 		// 		args: args{
-		// 			fields: gcprocess.ProcessFilter{
+		// 			fields: gprocess.ProcessFilter{
 		// 				Attrs:           map[string]string{},
-		// 				CommandExecutor: gcprocess.RealCommandExecutor{},
+		// 				CommandExecutor: gprocess.RealCommandExecutor{},
 		// 			},
 		// 		},
 		// 		want:    []map[string]string{{ /* expect at least one process */ }},
@@ -131,9 +131,9 @@ func TestProcessFilter_ListProcesses(t *testing.T) {
 		// "Given a real system with a filter, When listing processes, Then it should return filtered processes": func(t *testing.T, ctrl *gomock.Controller) test {
 		// 	return test{
 		// 		args: args{
-		// 			fields: gcprocess.ProcessFilter{
+		// 			fields: gprocess.ProcessFilter{
 		// 				Attrs:           map[string]string{"USER": "root"},
-		// 				CommandExecutor: gcprocess.RealCommandExecutor{},
+		// 				CommandExecutor: gprocess.RealCommandExecutor{},
 		// 			},
 		// 		},
 		// 		want:    []map[string]string{{ /* expect processes filtered by USER=root */ }},
