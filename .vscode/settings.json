@@ -26,6 +26,7 @@
         "gctime",
         "gomock",
         "mockgen",
+        "omgolab",
         "strcase",
         "tasklist",
         "zerolog"
