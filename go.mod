@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/dgraph-io/badger/v4 v4.2.0
-	github.com/rs/zerolog v1.32.0
+	github.com/rs/zerolog v1.29.1
 	go.uber.org/mock v0.4.0
 )
 

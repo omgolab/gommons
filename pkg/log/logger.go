@@ -6,6 +6,7 @@ import (
 
 	gcollections "github.com/omgolab/go-commons/pkg/collections"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/pkgerrors"
 )
 
 type LogFields map[string]interface{}
@@ -78,6 +79,9 @@ type logCfg struct {
 }
 
 func New(options ...LogOption) (Logger, error) {
+	// set err marshaler
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+
 	l := &logCfg{
 		sc: &sharedCfg{
 			minLogLevel: DebugLevel,
@@ -186,7 +190,7 @@ func (l *logCfg) Event(msg string, level LogLevel, err error, csfCount int, fiel
 	event := l.zl.WithLevel(logToZerologMap[level])
 
 	if len(fields) > 0 {
-		lfs := gcollections.MergeMaps[LogFields](fields...)
+		lfs := gcollections.MergeMaps(fields...)
 		if lfs != nil {
 			event = event.Fields(lfs)
 		}
@@ -235,12 +239,12 @@ func (l *logCfg) Panic(msg string, err error, fields ...LogFields) {
 
 func (l *logCfg) Println(msg ...any) {
 	if !l.sc.isDisabled {
-		l.zl.Log().CallerSkipFrame(1).Msg(fmt.Sprint(msg...))
+		l.zl.Debug().CallerSkipFrame(1).Msg(fmt.Sprint(msg...))
 	}
 }
 
 func (l *logCfg) Printf(format string, v ...interface{}) {
 	if !l.sc.isDisabled {
-		l.zl.Log().CallerSkipFrame(1).Msg(fmt.Sprintf(format, v...))
+		l.zl.Debug().CallerSkipFrame(1).Msg(fmt.Sprintf(format, v...))
 	}
 }

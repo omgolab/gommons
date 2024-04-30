@@ -15,6 +15,7 @@
         "glog",
         "glogcsv",
         "gmath",
+        "gomock",
         "gprocess",
         "gruntime",
         "gstream",
@@ -24,9 +25,9 @@
         "gthreadhandler",
         "gthreads",
         "gtime",
-        "gomock",
         "mockgen",
         "omgolab",
+        "pkgerrors",
         "strcase",
         "tasklist",
         "zerolog"
