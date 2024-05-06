@@ -1,6 +1,7 @@
 package glog
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -11,6 +12,7 @@ import (
 
 type LogFields map[string]interface{}
 type LogLevel int
+type logStr string
 
 const (
 	NoLevel LogLevel = iota
@@ -49,7 +51,8 @@ type Logger interface {
 	// settings methods
 	SetMinGlobalLogLevel(minLevel LogLevel) Logger
 	SetMinCallerAttachLevel(minLevel LogLevel) Logger
-	SetContext(keyword string) Logger
+	SetContextNS(keyword string) Logger
+	ToContext(parentCtx context.Context) context.Context
 	DisableStackTraceOnError() Logger
 	DisableTimestamp() Logger
 	DisableAllLoggers() Logger
@@ -69,7 +72,7 @@ type uniqueCfg struct {
 	isTimestampOff  bool     // default ON
 	isStackTraceOff bool     // default ON
 	minCallerLevel  LogLevel // default WarnLevel
-	context         string   // default context (namespace)
+	ns              string   // default namespace
 }
 
 type logCfg struct {
@@ -117,13 +120,13 @@ func (l *logCfg) update(nuc uniqueCfg) Logger {
 
 	ctx := l.zl.With()
 
-	// 1. update the context
-	if nuc.context != "" {
-		if l.uc.context != "" {
-			// we need to clear the old context
+	// 1. update the namespace
+	if nuc.ns != "" {
+		if l.uc.ns != "" {
+			// we need to clear the old namespace
 			ctx = zerolog.New(zerolog.MultiLevelWriter(l.sc.writers...)).With()
 		}
-		ctx = ctx.Str("context", nuc.context)
+		ctx = ctx.Str("context-ns", nuc.ns)
 	}
 
 	// 2. update timestamp
@@ -169,12 +172,17 @@ func (l *logCfg) SetMinCallerAttachLevel(minLevel LogLevel) Logger {
 	return l.update(nuc)
 }
 
-// SetContext returns a new child logger with the context set
-func (l *logCfg) SetContext(keyword string) Logger {
+// SetContextNS returns a new child logger with the namespace set
+func (l *logCfg) SetContextNS(keyword string) Logger {
 	// copy current unique config
 	nuc := l.uc
-	nuc.context = keyword
+	nuc.ns = keyword
 	return l.update(nuc)
+}
+
+// ToContext returns a context with the attached logger
+func (l *logCfg) ToContext(parentCtx context.Context) context.Context {
+	return context.WithValue(parentCtx, logStr("logger"), l)
 }
 
 func (l *logCfg) DisableAllLoggers() Logger {
