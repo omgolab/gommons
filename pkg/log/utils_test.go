@@ -12,7 +12,7 @@ import (
 // Returns the attached logger if available with correct type.
 func TestContextToLogger_ReturnsLoggerIfAvailable(t *testing.T) {
 	l, _ := gstrlog.New([]gcustomlog.FilterOption{})
-	ctx := context.WithValue(context.Background(), glog.LogStr("logger"), l)
+	ctx := glog.LoggerToContext(context.Background(), l)
 	logger, err := glog.ContextToLogger[gstrlog.StringLogger](ctx)
 	if err != nil {
 		t.Errorf("Expected no error, but got: %v", err)

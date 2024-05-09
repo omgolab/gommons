@@ -1,7 +1,6 @@
 package glog
 
 import (
-	"context"
 	"fmt"
 	"io"
 
@@ -52,7 +51,6 @@ type Logger interface {
 	SetMinGlobalLogLevel(minLevel LogLevel) Logger
 	SetMinCallerAttachLevel(minLevel LogLevel) Logger
 	SetContextNS(keyword string) Logger
-	ToContext(parentCtx context.Context) context.Context
 	DisableStackTraceOnError() Logger
 	DisableTimestamp() Logger
 	DisableAllLoggers() Logger
@@ -178,11 +176,6 @@ func (l *logCfg) SetContextNS(keyword string) Logger {
 	nuc := l.uc
 	nuc.ns = keyword
 	return l.update(nuc)
-}
-
-// ToContext returns a context with the attached logger
-func (l *logCfg) ToContext(parentCtx context.Context) context.Context {
-	return context.WithValue(parentCtx, LogStr("logger"), l)
 }
 
 func (l *logCfg) DisableAllLoggers() Logger {
