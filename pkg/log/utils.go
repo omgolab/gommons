@@ -6,11 +6,11 @@ import (
 )
 
 // ContextToLogger returns the attached logger if available
-func ContextToLogger(ctx context.Context) (Logger, error) {
-	l, ok := ctx.Value(logStr("logger")).(Logger)
+func ContextToLogger[T any](ctx context.Context) (T, error) {
+	l, ok := ctx.Value(LogStr("logger")).(T)
 	if ok {
 		return l, nil
 	}
 
-	return nil, fmt.Errorf("logger not found")
+	return l, fmt.Errorf("logger not found")
 }

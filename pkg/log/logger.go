@@ -12,7 +12,7 @@ import (
 
 type LogFields map[string]interface{}
 type LogLevel int
-type logStr string
+type LogStr string
 
 const (
 	NoLevel LogLevel = iota
@@ -182,7 +182,7 @@ func (l *logCfg) SetContextNS(keyword string) Logger {
 
 // ToContext returns a context with the attached logger
 func (l *logCfg) ToContext(parentCtx context.Context) context.Context {
-	return context.WithValue(parentCtx, logStr("logger"), l)
+	return context.WithValue(parentCtx, LogStr("logger"), l)
 }
 
 func (l *logCfg) DisableAllLoggers() Logger {
