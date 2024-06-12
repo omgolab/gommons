@@ -67,7 +67,7 @@ func KillByPID(killSelf bool, pIDs ...string) error {
 	}
 
 	// if we're killing itself then we need to return the response first then kill
-	if foundSelf {
+	if foundSelf && killSelf {
 		go func() {
 			time.Sleep(time.Second * 2)
 			_ = kill(currentPID)
