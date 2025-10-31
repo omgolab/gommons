@@ -5,6 +5,7 @@ import (
 	"os"
 
 	gfile "github.com/omgolab/go-commons/pkg/file/open"
+	"github.com/rs/zerolog"
 )
 
 type LogOption func(*logCfg) error
@@ -27,7 +28,11 @@ func WithFileLogger(filename string) LogOption {
 
 func WithJsonStdOut() LogOption {
 	return func(l *logCfg) error {
-		l.sc.writers[0] = os.Stdout // update zero index to stdout
+		if len(l.sc.writers) == 0 {
+			l.sc.writers = []io.Writer{os.Stdout}
+		} else {
+			l.sc.writers[0] = os.Stdout
+		}
 		return nil
 	}
 }
@@ -42,6 +47,12 @@ func WithMultiLogger(ws ...io.Writer) LogOption {
 func WithTimestampFormat(format string) LogOption {
 	return func(l *logCfg) error {
 		l.sc.timeFormat = format
+		for i, w := range l.sc.writers {
+			if cw, ok := w.(*zerolog.ConsoleWriter); ok {
+				cw.TimeFormat = format
+				l.sc.writers[i] = cw
+			}
+		}
 		return nil
 	}
 }

@@ -3,13 +3,14 @@ package glog
 import (
 	"fmt"
 	"io"
+	"sync"
 
 	gcollections "github.com/omgolab/go-commons/pkg/collections"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 )
 
-type LogFields map[string]interface{}
+type LogFields map[string]any
 type LogLevel int
 type LogStr string
 
@@ -24,19 +25,22 @@ const (
 	PanicLevel
 )
 
-var logToZerologMap = map[LogLevel]zerolog.Level{
-	NoLevel:    zerolog.NoLevel,
-	TraceLevel: zerolog.TraceLevel,
-	DebugLevel: zerolog.DebugLevel,
-	InfoLevel:  zerolog.InfoLevel,
-	WarnLevel:  zerolog.WarnLevel,
-	ErrorLevel: zerolog.ErrorLevel,
-	FatalLevel: zerolog.FatalLevel,
-	PanicLevel: zerolog.PanicLevel,
-}
+var (
+	logToZerologMap = map[LogLevel]zerolog.Level{
+		NoLevel:    zerolog.NoLevel,
+		TraceLevel: zerolog.TraceLevel,
+		DebugLevel: zerolog.DebugLevel,
+		InfoLevel:  zerolog.InfoLevel,
+		WarnLevel:  zerolog.WarnLevel,
+		ErrorLevel: zerolog.ErrorLevel,
+		FatalLevel: zerolog.FatalLevel,
+		PanicLevel: zerolog.PanicLevel,
+	}
+
+	globalInitOnce sync.Once
+)
 
 type Logger interface {
-	// log methods
 	Event(msg string, level LogLevel, err error, csfCount int, fields ...LogFields)
 	Trace(msg string, fields ...LogFields)
 	Debug(msg string, fields ...LogFields)
@@ -46,8 +50,7 @@ type Logger interface {
 	Fatal(msg string, err error, fields ...LogFields)
 	Panic(msg string, err error, fields ...LogFields)
 	Println(msg ...any)
-	Printf(format string, v ...interface{})
-	// settings methods
+	Printf(format string, v ...any)
 	SetMinGlobalLogLevel(minLevel LogLevel) Logger
 	SetMinCallerAttachLevel(minLevel LogLevel) Logger
 	SetContextNS(keyword string) Logger
@@ -57,37 +60,40 @@ type Logger interface {
 	update(nuc uniqueCfg) Logger
 }
 
-// using sharedCfg so underlying data will be same on copy
 type sharedCfg struct {
+	mu          sync.RWMutex
 	minLogLevel LogLevel
-	isDisabled  bool // default ON
+	isDisabled  bool
 	writers     []io.Writer
 	timeFormat  string
 }
 
-// uniqueCfg separate for each logger instance
 type uniqueCfg struct {
-	isTimestampOff  bool     // default ON
-	isStackTraceOff bool     // default ON
-	minCallerLevel  LogLevel // default WarnLevel
-	ns              string   // default namespace
+	isTimestampOff  bool
+	isStackTraceOff bool
+	minCallerLevel  LogLevel
+	ns              string
 }
 
 type logCfg struct {
 	sc *sharedCfg
+
+	mu sync.RWMutex
 	zl zerolog.Logger
 	uc uniqueCfg
 }
 
 func New(options ...LogOption) (Logger, error) {
-	// set err marshaler
-	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	globalInitOnce.Do(func() {
+		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	})
 
+	defaultWriter := newConsoleWriter("Mon 02-Jan-06 03:04:05 PM -0700")
 	l := &logCfg{
 		sc: &sharedCfg{
 			minLogLevel: DebugLevel,
-			writers:     []io.Writer{zerolog.NewConsoleWriter()},
-			timeFormat:  "Mon 02-Jan-06 03:04:05 PM -0700",
+			writers:     []io.Writer{defaultWriter},
+			timeFormat:  defaultWriter.TimeFormat,
 		},
 		uc: uniqueCfg{
 			minCallerLevel: WarnLevel,
@@ -100,100 +106,127 @@ func New(options ...LogOption) (Logger, error) {
 		}
 	}
 
-	// update the zero logger
-	l.zl = zerolog.New(zerolog.MultiLevelWriter(l.sc.writers...))
-	zerolog.TimeFieldFormat = l.sc.timeFormat
+	if err := l.rebuildLogger(); err != nil {
+		return nil, err
+	}
 
 	return l.update(l.uc), nil
 }
 
-// Logger methods:
+func newConsoleWriter(format string) *zerolog.ConsoleWriter {
+	cw := zerolog.NewConsoleWriter()
+	cw.TimeFormat = format
+	return &cw
+}
 
-func (l *logCfg) update(nuc uniqueCfg) Logger {
-	// create a copy of the logger if the same config is not provided
-	if nuc != l.uc {
-		ll := *l
-		l = &ll
+func (l *logCfg) rebuildLogger() error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.rebuildLoggerLocked()
+}
+
+func (l *logCfg) rebuildLoggerLocked() error {
+	writers := l.writersSnapshot()
+	if len(writers) == 0 {
+		return fmt.Errorf("glog: logger has no writers configured")
 	}
 
-	ctx := l.zl.With()
-
-	// 1. update the namespace
-	if nuc.ns != "" {
-		if l.uc.ns != "" {
-			// we need to clear the old namespace
-			ctx = zerolog.New(zerolog.MultiLevelWriter(l.sc.writers...)).With()
-		}
-		ctx = ctx.Str("context-ns", nuc.ns)
+	base := zerolog.New(zerolog.MultiLevelWriter(writers...))
+	ctx := base.With()
+	if l.uc.ns != "" {
+		ctx = ctx.Str("context-ns", l.uc.ns)
 	}
-
-	// 2. update timestamp
-	if !nuc.isTimestampOff {
+	if !l.uc.isTimestampOff {
 		ctx = ctx.Timestamp()
 	}
-
-	// 3. update stack trace on error
-	if !nuc.isStackTraceOff {
+	if !l.uc.isStackTraceOff {
 		ctx = ctx.Stack()
 	}
 
-	// update the logger
 	l.zl = ctx.Logger()
-	l.uc = nuc
+	return nil
+}
 
+func (l *logCfg) writersSnapshot() []io.Writer {
+	l.sc.mu.RLock()
+	defer l.sc.mu.RUnlock()
+	writers := make([]io.Writer, len(l.sc.writers))
+	copy(writers, l.sc.writers)
+	return writers
+}
+
+func (l *logCfg) snapshot() (zerolog.Logger, uniqueCfg) {
+	l.mu.RLock()
+	logger := l.zl
+	uc := l.uc
+	l.mu.RUnlock()
+	return logger, uc
+}
+
+func (l *logCfg) shouldSkip(level LogLevel) bool {
+	l.sc.mu.RLock()
+	disabled := l.sc.isDisabled || level < l.sc.minLogLevel
+	l.sc.mu.RUnlock()
+	return disabled
+}
+
+func (l *logCfg) update(nuc uniqueCfg) Logger {
+	l.mu.Lock()
+	l.uc = nuc
+	l.rebuildLoggerLocked()
+	l.mu.Unlock()
 	return l
 }
 
 func (l *logCfg) SetMinGlobalLogLevel(minLevel LogLevel) Logger {
+	l.sc.mu.Lock()
 	l.sc.minLogLevel = minLevel
+	l.sc.mu.Unlock()
 	return l
 }
 
 func (l *logCfg) DisableStackTraceOnError() Logger {
-	// copy current unique config
 	nuc := l.uc
 	nuc.isStackTraceOff = true
 	return l.update(nuc)
 }
 
 func (l *logCfg) DisableTimestamp() Logger {
-	// copy current unique config
 	nuc := l.uc
 	nuc.isTimestampOff = true
 	return l.update(nuc)
 }
 
 func (l *logCfg) SetMinCallerAttachLevel(minLevel LogLevel) Logger {
-	// copy current unique config
 	nuc := l.uc
 	nuc.minCallerLevel = minLevel
 	return l.update(nuc)
 }
 
-// SetContextNS returns a new child logger with the namespace set
 func (l *logCfg) SetContextNS(keyword string) Logger {
-	// copy current unique config
 	nuc := l.uc
 	nuc.ns = keyword
 	return l.update(nuc)
 }
 
 func (l *logCfg) DisableAllLoggers() Logger {
+	l.sc.mu.Lock()
 	l.sc.isDisabled = true
+	l.sc.mu.Unlock()
 	return l
 }
 
 func (l *logCfg) Event(msg string, level LogLevel, err error, csfCount int, fields ...LogFields) {
-	if l.sc.isDisabled || level < l.sc.minLogLevel {
+	if l.shouldSkip(level) {
 		return
 	}
 
-	event := l.zl.WithLevel(logToZerologMap[level])
+	logger, uc := l.snapshot()
+	event := logger.WithLevel(logToZerologMap[level])
 
 	if len(fields) > 0 {
-		lfs := gcollections.MergeMaps(fields...)
-		if lfs != nil {
-			event = event.Fields(lfs)
+		if merged := gcollections.MergeMaps(fields...); merged != nil {
+			event = event.Fields(merged)
 		}
 	}
 
@@ -201,9 +234,7 @@ func (l *logCfg) Event(msg string, level LogLevel, err error, csfCount int, fiel
 		event = event.Err(err)
 	}
 
-	// use the caller level if enabled
-	if l.uc.minCallerLevel <= level {
-		// csfCount = callerSkipFrameCount, normally to skip the caller
+	if uc.minCallerLevel <= level {
 		event = event.Caller(csfCount)
 	}
 
@@ -239,13 +270,36 @@ func (l *logCfg) Panic(msg string, err error, fields ...LogFields) {
 }
 
 func (l *logCfg) Println(msg ...any) {
-	if !l.sc.isDisabled {
-		l.zl.Debug().CallerSkipFrame(1).Msg(fmt.Sprint(msg...))
+	if l.shouldSkip(DebugLevel) {
+		return
 	}
+	l.Event(fmt.Sprint(msg...), DebugLevel, nil, 3)
 }
 
-func (l *logCfg) Printf(format string, v ...interface{}) {
-	if !l.sc.isDisabled {
-		l.zl.Debug().CallerSkipFrame(1).Msg(fmt.Sprintf(format, v...))
+func (l *logCfg) Printf(format string, v ...any) {
+	if l.shouldSkip(DebugLevel) {
+		return
 	}
+	l.Event(fmt.Sprintf(format, v...), DebugLevel, nil, 3)
+}
+
+func (l *logCfg) SetOutput(w io.Writer) {
+	l.sc.mu.Lock()
+	l.sc.writers = []io.Writer{w}
+	l.sc.mu.Unlock()
+	_ = l.rebuildLogger()
+}
+
+func (l *logCfg) SetPrefix(string) {}
+
+func (l *logCfg) Flags() int { return 0 }
+
+func (l *logCfg) SetFlags(int) {}
+
+func (l *logCfg) Writer() io.Writer {
+	l.sc.mu.RLock()
+	writers := make([]io.Writer, len(l.sc.writers))
+	copy(writers, l.sc.writers)
+	l.sc.mu.RUnlock()
+	return zerolog.MultiLevelWriter(writers...)
 }
